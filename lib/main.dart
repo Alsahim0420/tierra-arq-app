@@ -1,10 +1,22 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'core/injection/injection_container.dart' as di;
+import 'core/entities/user_entity.dart' as core;
+import 'core/widgets/custom_snackbar.dart';
+import 'presentation/bloc/auth/auth_bloc.dart';
+import 'presentation/bloc/auth/auth_event.dart';
+import 'presentation/bloc/auth/auth_state.dart';
+import 'presentation/bloc/obra/obra_bloc.dart';
+import 'presentation/bloc/obra/obra_event.dart';
+import 'presentation/bloc/obra/obra_state.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await di.configureDependencies();
   runApp(const TierraApp());
 }
 
@@ -48,11 +60,21 @@ class TierraApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'TIERRA Control de Obras',
-      theme: _buildTheme(),
-      home: const AuthWrapper(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(
+          create: (_) => di.getIt<AuthBloc>()..add(const CheckAuthStatus()),
+        ),
+        BlocProvider(
+          create: (_) => di.getIt<ObraBloc>(),
+        ),
+      ],
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'TIERRA Control de Obras',
+        theme: _buildTheme(),
+        home: const AuthWrapper(),
+      ),
     );
   }
 }
@@ -66,67 +88,86 @@ class User {
     required this.password,
     required this.name,
     required this.role,
+    this.lastname = '',
+    this.phone,
+    this.city = '',
+    this.dni,
+    this.address = '',
+    this.specialty = '',
+    this.experienceYears,
+    this.birthDate,
+    this.joinDate,
+    this.status = 'Activo',
+    this.notes = '',
   });
 
   final String id;
   final String email;
   final String password;
   final String name;
+  final String lastname;
   final UserRole role;
-}
+  final int? phone;
+  final String city;
+  final int? dni;
+  final String address;
+  final String specialty;
+  final int? experienceYears;
+  final DateTime? birthDate;
+  final DateTime? joinDate;
+  final String status;
+  final String notes;
 
-final mockUsers = [
-  User(
-    id: 'admin-1',
-    email: 'admin@tierra.com',
-    password: 'admin123',
-    name: 'Administrador',
-    role: UserRole.admin,
-  ),
-  User(
-    id: 'maestro-1',
-    email: 'maestro@tierra.com',
-    password: 'maestro123',
-    name: 'Maestro Pérez',
-    role: UserRole.maestro,
-  ),
-];
+  String get fullName => lastname.isEmpty ? name : '$name $lastname';
+  String get roleLabel => role == UserRole.admin ? 'Administrador' : 'Maestro';
+
+  String get formattedPhone => phone != null ? '+57 $phone' : 'No especificado';
+  String get formattedBirthDate => birthDate != null
+      ? '${birthDate!.day}/${birthDate!.month}/${birthDate!.year}'
+      : 'No especificada';
+  String get formattedJoinDate => joinDate != null
+      ? '${joinDate!.day}/${joinDate!.month}/${joinDate!.year}'
+      : 'No especificada';
+  int? get age => birthDate != null
+      ? DateTime.now().difference(birthDate!).inDays ~/ 365
+      : null;
+}
 
 // --- AUTH WRAPPER -------------------------------------------------------
 
-class AuthWrapper extends StatefulWidget {
+class AuthWrapper extends StatelessWidget {
   const AuthWrapper({super.key});
 
   @override
-  State<AuthWrapper> createState() => _AuthWrapperState();
-}
-
-class _AuthWrapperState extends State<AuthWrapper> {
-  User? _currentUser;
-
-  void _onLogin(User user) {
-    setState(() => _currentUser = user);
-  }
-
-  void _onLogout() {
-    setState(() => _currentUser = null);
-  }
-
-  @override
   Widget build(BuildContext context) {
-    if (_currentUser == null) {
-      return LoginScreen(onLogin: _onLogin);
-    }
-    return DashboardScreen(user: _currentUser!, onLogout: _onLogout);
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, state) {
+        if (state is AuthAuthenticated) {
+          // Cargar obras del responsable al autenticarse
+          context.read<ObraBloc>().add(
+                LoadObrasByResponsable(state.user.id),
+              );
+          return ObrasListScreen(
+            user: state.user,
+            onLogout: () {
+              context.read<AuthBloc>().add(const LogoutRequested());
+            },
+          );
+        } else {
+          // Mostrar LoginScreen siempre que no esté autenticado
+          // El loading se muestra en el botón, no como pantalla completa
+          return LoginScreen();
+        }
+      },
+    );
   }
+
 }
 
 // --- LOGIN SCREEN -------------------------------------------------------
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key, required this.onLogin});
-
-  final void Function(User) onLogin;
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -136,8 +177,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _isLoading = false;
-  String? _errorMessage;
 
   @override
   void dispose() {
@@ -146,218 +185,153 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _handleLogin() {
+  void _handleLogin(BuildContext context) {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() {
-      _isLoading = true;
-      _errorMessage = null;
-    });
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
 
-    // Simular delay de red
-    Future.delayed(const Duration(milliseconds: 800), () {
-      final email = _emailController.text.trim();
-      final password = _passwordController.text.trim();
-
-      final user = mockUsers.firstWhere(
-        (u) => u.email == email && u.password == password,
-        orElse: () => throw Exception('Usuario no encontrado'),
-      );
-
-      setState(() => _isLoading = false);
-      widget.onLogin(user);
-    }).catchError((error) {
-      setState(() {
-        _isLoading = false;
-        _errorMessage = 'Credenciales incorrectas';
-      });
-    });
+    context.read<AuthBloc>().add(LoginRequested(email, password));
   }
 
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
-    return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 40),
-                    // Logo/Brand
-                    Container(
-                      padding: const EdgeInsets.all(32),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.04),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: TierraApp._primary.withValues(alpha: 0.3),
-                          width: 2,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.construction,
-                        size: 64,
-                        color: TierraApp._primary,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    Text(
-                      'TIERRA ARQ',
-                      style: textTheme.headlineMedium?.copyWith(
-                        color: Colors.white,
-                        letterSpacing: 1.2,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Control de obras',
-                      style: textTheme.bodyLarge?.copyWith(
-                        color: Colors.white70,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 48),
-                    // Email field
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      decoration: InputDecoration(
-                        labelText: 'Correo electrónico',
-                        prefixIcon: const Icon(Icons.email_outlined),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Requerido';
-                        }
-                        if (!value.contains('@')) {
-                          return 'Correo inválido';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    // Password field
-                    TextFormField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      textInputAction: TextInputAction.done,
-                      onFieldSubmitted: (_) => _handleLogin(),
-                      decoration: InputDecoration(
-                        labelText: 'Contraseña',
-                        prefixIcon: const Icon(Icons.lock_outlined),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      validator: (value) =>
-                          value == null || value.isEmpty ? 'Requerido' : null,
-                    ),
-                    if (_errorMessage != null) ...[
-                      const SizedBox(height: 16),
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is AuthError) {
+          CustomSnackBar.showError(
+            context,
+            message: state.message,
+            actionLabel: 'Cerrar',
+            onAction: () {
+              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            },
+          );
+        }
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      const SizedBox(height: 40),
+                      // Logo/Brand
                       Container(
-                        padding: const EdgeInsets.all(12),
+                        padding: const EdgeInsets.all(32),
                         decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
+                          color: Colors.white.withValues(alpha: 0.04),
+                          shape: BoxShape.circle,
                           border: Border.all(
-                            color: Colors.red.withValues(alpha: 0.3),
+                            color: TierraApp._primary.withValues(alpha: 0.3),
+                            width: 2,
                           ),
                         ),
-                        child: Row(
-                          children: [
-                            const Icon(
-                              Icons.error_outline,
-                              color: Colors.red,
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                _errorMessage!,
-                                style: const TextStyle(color: Colors.red),
+                        child: const Icon(
+                          Icons.construction,
+                          size: 64,
+                          color: TierraApp._primary,
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      Text(
+                        'TIERRA ARQ',
+                        style: textTheme.headlineMedium?.copyWith(
+                          color: Colors.white,
+                          letterSpacing: 1.2,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Control de obras',
+                        style: textTheme.bodyLarge?.copyWith(
+                          color: Colors.white70,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 48),
+                      // Email field
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        decoration: InputDecoration(
+                          labelText: 'Correo electrónico',
+                          prefixIcon: const Icon(Icons.email_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Requerido';
+                          }
+                          if (!value.contains('@')) {
+                            return 'Correo inválido';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      // Password field
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        textInputAction: TextInputAction.done,
+                        onFieldSubmitted: (_) => _handleLogin(context),
+                        decoration: InputDecoration(
+                          labelText: 'Contraseña',
+                          prefixIcon: const Icon(Icons.lock_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        validator: (value) =>
+                            value == null || value.isEmpty ? 'Requerido' : null,
+                      ),
+                      const SizedBox(height: 32),
+                      // Login button
+                      BlocBuilder<AuthBloc, AuthState>(
+                        builder: (context, state) {
+                          final isLoading = state is AuthLoading;
+                          return FilledButton(
+                            onPressed: isLoading
+                                ? null
+                                : () => _handleLogin(context),
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
                               ),
                             ),
-                          ],
-                        ),
+                            child: isLoading
+                                ? const SizedBox(
+                                    height: 20,
+                                    width: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                    ),
+                                  )
+                                : const Text(
+                                    'Iniciar sesión',
+                                    style: TextStyle(fontSize: 16),
+                                  ),
+                          );
+                        },
                       ),
+                      const SizedBox(height: 40),
                     ],
-                    const SizedBox(height: 32),
-                    // Login button
-                    FilledButton(
-                      onPressed: _isLoading ? null : _handleLogin,
-                      style: FilledButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text(
-                              'Iniciar sesión',
-                              style: TextStyle(fontSize: 16),
-                            ),
-                    ),
-                    const SizedBox(height: 24),
-                    // Quick login hints
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.03),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.white12),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Usuarios de prueba:',
-                            style: textTheme.labelMedium?.copyWith(
-                              color: Colors.white70,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          _QuickLoginHint(
-                            label: 'Admin',
-                            email: 'admin@tierra.com',
-                            password: 'admin123',
-                            onTap: () {
-                              _emailController.text = 'admin@tierra.com';
-                              _passwordController.text = 'admin123';
-                            },
-                          ),
-                          const SizedBox(height: 6),
-                          _QuickLoginHint(
-                            label: 'Maestro',
-                            email: 'maestro@tierra.com',
-                            password: 'maestro123',
-                            onTap: () {
-                              _emailController.text = 'maestro@tierra.com';
-                              _passwordController.text = 'maestro123';
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-                  ],
+                  ),
                 ),
               ),
             ),
@@ -368,53 +342,433 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-class _QuickLoginHint extends StatelessWidget {
-  const _QuickLoginHint({
-    required this.label,
-    required this.email,
-    required this.password,
-    required this.onTap,
+// --- OBRAS LIST SCREEN -------------------------------------------------------
+
+class ObrasListScreen extends StatelessWidget {
+  const ObrasListScreen({
+    super.key,
+    required this.user,
+    required this.onLogout,
   });
 
-  final String label;
-  final String email;
-  final String password;
-  final VoidCallback onTap;
+  final core.UserEntity user;
+  final VoidCallback onLogout;
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: TierraApp._primary.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(6),
+    final textTheme = Theme.of(context).textTheme;
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Mis Obras',
+          style: textTheme.headlineSmall?.copyWith(
+            color: Colors.white,
+            letterSpacing: -0.4,
+          ),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person_outline),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ProfileScreen(
+                    user: user,
+                    onLogout: onLogout,
+                  ),
+                ),
+              );
+            },
+            tooltip: 'Perfil',
+          ),
+        ],
+      ),
+      body: BlocBuilder<ObraBloc, ObraState>(
+        builder: (context, state) {
+          if (state is ObraLoading) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+
+          if (state is ObraError) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 64,
+                    color: Colors.red.shade300,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    state.message,
+                    style: textTheme.bodyLarge?.copyWith(
+                      color: Colors.white70,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton.icon(
+                    onPressed: () {
+                      context.read<ObraBloc>().add(
+                            LoadObrasByResponsable(user.id),
+                          );
+                    },
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Reintentar'),
+                  ),
+                ],
               ),
-              child: Text(
-                label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: TierraApp._primary,
+            );
+          }
+
+          if (state is ObraLoaded) {
+            if (state.obras.isEmpty) {
+              return Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.construction_outlined,
+                      size: 64,
+                      color: Colors.white30,
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No tienes obras asignadas',
+                      style: textTheme.titleMedium?.copyWith(
+                        color: Colors.white70,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            return RefreshIndicator(
+              onRefresh: () async {
+                context.read<ObraBloc>().add(
+                      LoadObrasByResponsable(user.id),
+                    );
+                // Esperar un momento para que el estado cambie
+                await Future.delayed(const Duration(milliseconds: 500));
+              },
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: state.obras.length,
+                itemBuilder: (context, index) {
+                  final obra = state.obras[index];
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.all(16),
+                      leading: Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: TierraApp._primary.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Icon(
+                          Icons.construction,
+                          color: TierraApp._primary,
+                        ),
+                      ),
+                      title: Text(
+                        obra.title,
+                        style: textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 4),
+                          if (obra.description.isNotEmpty)
+                            Text(
+                              obra.description,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: textTheme.bodySmall?.copyWith(
+                                color: Colors.white70,
+                              ),
+                            ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.location_on,
+                                size: 16,
+                                color: Colors.white54,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${obra.city}, ${obra.location}',
+                                style: textTheme.bodySmall?.copyWith(
+                                  color: Colors.white54,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (obra.tareas.isNotEmpty) ...[
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.assignment,
+                                  size: 16,
+                                  color: Colors.white54,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${obra.tareas.length} tarea${obra.tareas.length > 1 ? 's' : ''}',
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: Colors.white54,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                      trailing: Icon(
+                        Icons.chevron_right,
+                        color: Colors.white54,
+                      ),
+                      onTap: () {
+                        // TODO: Navegar a detalle de obra
+                      },
+                    ),
+                  );
+                },
+              ),
+            );
+          }
+
+          return const SizedBox.shrink();
+        },
+      ),
+    );
+  }
+}
+
+// --- PROFILE SCREEN ----------------------------------------------------------
+
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({
+    super.key,
+    required this.user,
+    required this.onLogout,
+  });
+
+  final core.UserEntity user;
+  final VoidCallback onLogout;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(
+          'Perfil',
+          style: textTheme.headlineSmall?.copyWith(
+            color: Colors.white,
+            letterSpacing: -0.4,
+          ),
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Avatar y nombre
+            Center(
+              child: Column(
+                children: [
+                  Container(
+                    width: 100,
+                    height: 100,
+                    decoration: BoxDecoration(
+                      color: TierraApp._primary.withValues(alpha: 0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.person,
+                      size: 50,
+                      color: TierraApp._primary,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    user.fullName,
+                    style: textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: TierraApp._primary.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      user.role == 'admin' ? 'Administrador' : 'Maestro',
+                      style: textTheme.bodySmall?.copyWith(
+                        color: TierraApp._primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+            // Información de contacto
+            _InfoSection(
+              title: 'Información de contacto',
+              children: [
+                _InfoRow(
+                  icon: Icons.email,
+                  label: 'Email',
+                  value: user.email,
+                ),
+                if (user.phone != null)
+                  _InfoRow(
+                    icon: Icons.phone,
+                    label: 'Teléfono',
+                    value: '+57 ${user.phone}',
+                  ),
+                if (user.city.isNotEmpty)
+                  _InfoRow(
+                    icon: Icons.location_on,
+                    label: 'Ciudad',
+                    value: user.city,
+                  ),
+              ],
+            ),
+            // Información personal
+            if (user.dni != null)
+              _InfoSection(
+                title: 'Información personal',
+                children: [
+                  _InfoRow(
+                    icon: Icons.badge,
+                    label: 'DNI',
+                    value: user.dni.toString(),
+                  ),
+                ],
+              ),
+            const SizedBox(height: 32),
+            // Botón de cerrar sesión
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () {
+                  onLogout();
+                  Navigator.of(context).popUntil((route) => route.isFirst);
+                },
+                icon: const Icon(Icons.logout),
+                label: const Text('Cerrar sesión'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.red.shade700,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
               ),
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                '$email / $password',
-                style: const TextStyle(fontSize: 11, color: Colors.white54),
-              ),
-            ),
-            const Icon(Icons.touch_app, size: 16, color: Colors.white54),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _InfoSection extends StatelessWidget {
+  const _InfoSection({
+    required this.title,
+    required this.children,
+  });
+
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: textTheme.titleMedium?.copyWith(
+            fontWeight: FontWeight.w600,
+            color: Colors.white70,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Card(
+          child: Column(
+            children: children,
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+}
+
+class _InfoRow extends StatelessWidget {
+  const _InfoRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final textTheme = Theme.of(context).textTheme;
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: Colors.white54),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: textTheme.bodySmall?.copyWith(
+                    color: Colors.white54,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -441,7 +795,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
 
   UserRole get _role => widget.user.role;
-  String get _activeMaestro => widget.user.name;
+  String get _activeMaestro => widget.user.fullName;
 
   @override
   void initState() {
@@ -650,32 +1004,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     tooltip: 'Regresar',
                   ),
             titleSpacing: isCompact ? 16 : 24,
-            title: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _role == UserRole.admin
-                      ? 'TIERRA ARQ · Admin'
-                      : 'TIERRA ARQ · Maestro',
-                  style: textTheme.titleMedium?.copyWith(color: Colors.white70),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _selectedIndex == 0
-                      ? (_role == UserRole.admin
-                            ? 'Control de obras'
-                            : 'Registro de campo')
-                      : _selectedIndex == 1
-                      ? 'Tareas'
-                      : _selectedIndex == 2
-                      ? 'Evidencias'
-                      : 'Perfil',
-                  style: textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
-                    letterSpacing: -0.4,
-                  ),
-                ),
-              ],
+            title: Text(
+              _selectedIndex == 0
+                  ? (_role == UserRole.admin
+                        ? 'Control de obras'
+                        : 'Registro de campo')
+                  : _selectedIndex == 1
+                  ? 'Tareas'
+                  : _selectedIndex == 2
+                  ? 'Evidencias'
+                  : 'Perfil',
+              style: textTheme.headlineSmall?.copyWith(
+                color: Colors.white,
+                letterSpacing: -0.4,
+              ),
             ),
           ),
           body: _selectedIndex == 3
@@ -807,6 +1149,53 @@ class _ProfileView extends StatelessWidget {
   final VoidCallback onLogout;
   final bool isCompact;
 
+  Widget _buildInfoRow(
+    BuildContext context,
+    IconData icon,
+    String label,
+    String value,
+  ) {
+    final textTheme = Theme.of(context).textTheme;
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: TierraApp._primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: TierraApp._primary, size: 20),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: textTheme.labelSmall?.copyWith(
+                    color: Colors.white54,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
@@ -819,7 +1208,7 @@ class _ProfileView extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const SizedBox(height: 16),
-          // Información del usuario
+          // Información principal del usuario
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(24),
@@ -845,7 +1234,11 @@ class _ProfileView extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 20),
-                Text(user.name, style: textTheme.headlineMedium),
+                Text(
+                  user.fullName,
+                  style: textTheme.headlineMedium,
+                  textAlign: TextAlign.center,
+                ),
                 const SizedBox(height: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -858,84 +1251,159 @@ class _ProfileView extends StatelessWidget {
                     border: Border.all(color: TierraApp._primary),
                   ),
                   child: Text(
-                    user.role == UserRole.admin ? 'Administrador' : 'Maestro',
+                    user.roleLabel,
                     style: textTheme.labelMedium?.copyWith(
                       color: TierraApp._primary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
-                const SizedBox(height: 20),
-                const Divider(),
-                const SizedBox(height: 16),
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.email_outlined,
-                      color: Colors.white54,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Correo electrónico',
-                            style: textTheme.labelSmall?.copyWith(
-                              color: Colors.white54,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(user.email, style: textTheme.bodyMedium),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
               ],
             ),
           ),
           const SizedBox(height: 24),
-          // Botón de cerrar sesión
-          FilledButton.icon(
-            onPressed: () {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('Cerrar sesión'),
-                  content: const Text(
-                    '¿Estás seguro de que deseas cerrar sesión?',
+          // Información de contacto
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(18),
+              color: Colors.white.withValues(alpha: 0.04),
+              border: Border.all(color: Colors.white12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Información de contacto',
+                  style: textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
                   ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Cancelar'),
-                    ),
-                    FilledButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        onLogout();
-                      },
-                      style: FilledButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        foregroundColor: Colors.white,
-                      ),
-                      child: const Text('Cerrar sesión'),
-                    ),
-                  ],
                 ),
-              );
-            },
-            icon: const Icon(Icons.logout),
-            label: const Text('Cerrar sesión'),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red.withValues(alpha: 0.2),
-              foregroundColor: Colors.red,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
+                const SizedBox(height: 20),
+                _buildInfoRow(
+                  context,
+                  Icons.email_outlined,
+                  'Correo electrónico',
+                  user.email,
+                ),
+                if (user.phone != null)
+                  _buildInfoRow(
+                    context,
+                    Icons.phone_outlined,
+                    'Teléfono',
+                    '+57 ${user.phone}',
+                  ),
+                if (user.city.isNotEmpty)
+                  _buildInfoRow(
+                    context,
+                    Icons.location_city_outlined,
+                    'Ciudad',
+                    user.city,
+                  ),
+              ],
+            ),
+          ),
+          if (user.dni != null) ...[
+            const SizedBox(height: 16),
+            // Información personal
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(18),
+                color: Colors.white.withValues(alpha: 0.04),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Información personal',
+                    style: textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildInfoRow(
+                    context,
+                    Icons.badge_outlined,
+                    'Documento de identidad',
+                    '${user.dni}',
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 24),
+          // Botón de cerrar sesión
+          Container(
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: Colors.red.withValues(alpha: 0.15),
+              border: Border.all(
+                color: Colors.red.withValues(alpha: 0.3),
+                width: 1,
+              ),
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      backgroundColor: const Color(0xFF1B1B1B),
+                      title: const Text(
+                        'Cerrar sesión',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      content: const Text(
+                        '¿Estás seguro de que deseas cerrar sesión?',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(context).pop(),
+                          child: const Text('Cancelar'),
+                        ),
+                        FilledButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            onLogout();
+                          },
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                          ),
+                          child: const Text('Cerrar sesión'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
                 borderRadius: BorderRadius.circular(16),
-                side: BorderSide(color: Colors.red.withValues(alpha: 0.5)),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 16,
+                    horizontal: 20,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.logout, color: Colors.red, size: 20),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Cerrar sesión',
+                        style: textTheme.titleMedium?.copyWith(
+                          color: Colors.red,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
