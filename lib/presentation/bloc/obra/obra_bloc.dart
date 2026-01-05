@@ -5,7 +5,6 @@ import 'obra_state.dart';
 
 class ObraBloc extends Bloc<ObraEvent, ObraState> {
   final GetObrasUseCase getObrasUseCase;
-  final GetObraByIdUseCase getObraByIdUseCase;
   final GetObrasByResponsableUseCase getObrasByResponsableUseCase;
   final CreateObraUseCase createObraUseCase;
   final UpdateObraUseCase updateObraUseCase;
@@ -13,14 +12,12 @@ class ObraBloc extends Bloc<ObraEvent, ObraState> {
 
   ObraBloc({
     required this.getObrasUseCase,
-    required this.getObraByIdUseCase,
     required this.getObrasByResponsableUseCase,
     required this.createObraUseCase,
     required this.updateObraUseCase,
     required this.deleteObraUseCase,
   }) : super(const ObraInitial()) {
     on<LoadObras>(_onLoadObras);
-    on<LoadObraById>(_onLoadObraById);
     on<LoadObrasByResponsable>(_onLoadObrasByResponsable);
     on<CreateObra>(_onCreateObra);
     on<UpdateObra>(_onUpdateObra);
@@ -29,41 +26,13 @@ class ObraBloc extends Bloc<ObraEvent, ObraState> {
     on<ClearSelection>(_onClearSelection);
   }
 
-  Future<void> _onLoadObras(
-    LoadObras event,
-    Emitter<ObraState> emit,
-  ) async {
+  Future<void> _onLoadObras(LoadObras event, Emitter<ObraState> emit) async {
     emit(const ObraLoading());
     try {
       final obras = await getObrasUseCase();
       emit(ObraLoaded(obras: obras));
     } catch (e) {
       emit(ObraError('Error al cargar obras: $e'));
-    }
-  }
-
-  Future<void> _onLoadObraById(
-    LoadObraById event,
-    Emitter<ObraState> emit,
-  ) async {
-    emit(const ObraLoading());
-    try {
-      final obra = await getObraByIdUseCase(event.id);
-      if (obra != null) {
-        final currentState = state;
-        if (currentState is ObraLoaded) {
-          emit(ObraLoaded(
-            obras: currentState.obras,
-            selectedObra: obra,
-          ));
-        } else {
-          emit(ObraLoaded(obras: [], selectedObra: obra));
-        }
-      } else {
-        emit(const ObraError('Obra no encontrada'));
-      }
-    } catch (e) {
-      emit(ObraError('Error al cargar obra: $e'));
     }
   }
 
@@ -80,19 +49,18 @@ class ObraBloc extends Bloc<ObraEvent, ObraState> {
     }
   }
 
-  Future<void> _onCreateObra(
-    CreateObra event,
-    Emitter<ObraState> emit,
-  ) async {
+  Future<void> _onCreateObra(CreateObra event, Emitter<ObraState> emit) async {
     emit(const ObraLoading());
     try {
       final obra = await createObraUseCase(event.obra);
       final currentState = state;
       if (currentState is ObraLoaded) {
-        emit(ObraLoaded(
-          obras: [...currentState.obras, obra],
-          selectedObra: currentState.selectedObra,
-        ));
+        emit(
+          ObraLoaded(
+            obras: [...currentState.obras, obra],
+            selectedObra: currentState.selectedObra,
+          ),
+        );
       } else {
         emit(ObraLoaded(obras: [obra]));
       }
@@ -101,10 +69,7 @@ class ObraBloc extends Bloc<ObraEvent, ObraState> {
     }
   }
 
-  Future<void> _onUpdateObra(
-    UpdateObra event,
-    Emitter<ObraState> emit,
-  ) async {
+  Future<void> _onUpdateObra(UpdateObra event, Emitter<ObraState> emit) async {
     emit(const ObraLoading());
     try {
       final obra = await updateObraUseCase(event.obra);
@@ -113,65 +78,54 @@ class ObraBloc extends Bloc<ObraEvent, ObraState> {
         final updatedObras = currentState.obras.map((o) {
           return o.id == obra.id ? obra : o;
         }).toList();
-        emit(ObraLoaded(
-          obras: updatedObras,
-          selectedObra: currentState.selectedObra?.id == obra.id
-              ? obra
-              : currentState.selectedObra,
-        ));
+        emit(
+          ObraLoaded(
+            obras: updatedObras,
+            selectedObra: currentState.selectedObra?.id == obra.id
+                ? obra
+                : currentState.selectedObra,
+          ),
+        );
       }
     } catch (e) {
       emit(ObraError('Error al actualizar obra: $e'));
     }
   }
 
-  Future<void> _onDeleteObra(
-    DeleteObra event,
-    Emitter<ObraState> emit,
-  ) async {
+  Future<void> _onDeleteObra(DeleteObra event, Emitter<ObraState> emit) async {
     emit(const ObraLoading());
     try {
       await deleteObraUseCase(event.id);
       final currentState = state;
       if (currentState is ObraLoaded) {
-        final updatedObras =
-            currentState.obras.where((o) => o.id != event.id).toList();
-        emit(ObraLoaded(
-          obras: updatedObras,
-          selectedObra: currentState.selectedObra?.id == event.id
-              ? null
-              : currentState.selectedObra,
-        ));
+        final updatedObras = currentState.obras
+            .where((o) => o.id != event.id)
+            .toList();
+        emit(
+          ObraLoaded(
+            obras: updatedObras,
+            selectedObra: currentState.selectedObra?.id == event.id
+                ? null
+                : currentState.selectedObra,
+          ),
+        );
       }
     } catch (e) {
       emit(ObraError('Error al eliminar obra: $e'));
     }
   }
 
-  void _onSelectObra(
-    SelectObra event,
-    Emitter<ObraState> emit,
-  ) {
+  void _onSelectObra(SelectObra event, Emitter<ObraState> emit) {
     final currentState = state;
     if (currentState is ObraLoaded) {
-      emit(ObraLoaded(
-        obras: currentState.obras,
-        selectedObra: event.obra,
-      ));
+      emit(ObraLoaded(obras: currentState.obras, selectedObra: event.obra));
     }
   }
 
-  void _onClearSelection(
-    ClearSelection event,
-    Emitter<ObraState> emit,
-  ) {
+  void _onClearSelection(ClearSelection event, Emitter<ObraState> emit) {
     final currentState = state;
     if (currentState is ObraLoaded) {
-      emit(ObraLoaded(
-        obras: currentState.obras,
-        selectedObra: null,
-      ));
+      emit(ObraLoaded(obras: currentState.obras, selectedObra: null));
     }
   }
 }
-

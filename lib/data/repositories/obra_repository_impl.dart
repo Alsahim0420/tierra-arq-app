@@ -13,10 +13,10 @@ class ObraRepositoryImpl implements ObraRepository {
     return await _dataSource.getObras();
   }
 
-  @override
-  Future<ObraEntity?> getObraById(String id) async {
-    return await _dataSource.getObraById(id);
-  }
+  // @override
+  // Future<ObraEntity?> getObraById(String id) async {
+  //   return await _dataSource.getObraById(id);
+  // }
 
   @override
   Future<List<ObraEntity>> getObrasByResponsable(String userId) async {
@@ -38,4 +38,3 @@ class ObraRepositoryImpl implements ObraRepository {
     return await _dataSource.deleteObra(id);
   }
 }
-

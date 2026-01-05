@@ -3,7 +3,7 @@ import '../entities/obra_entity.dart';
 /// Datasource abstracto para obras
 abstract class ObraDataSource {
   Future<List<ObraEntity>> getObras();
-  Future<ObraEntity?> getObraById(String id);
+
   Future<List<ObraEntity>> getObrasByResponsable(String userId);
   Future<ObraEntity> createObra(ObraEntity obra);
   Future<ObraEntity> updateObra(ObraEntity obra);

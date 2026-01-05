@@ -13,12 +13,14 @@ import '../../core/repositories/obra_repository.dart';
 import '../../core/repositories/tarea_repository.dart';
 import '../../core/services/token_storage_service.dart';
 import '../../core/services/http_service.dart';
+import '../../core/services/theme_service.dart';
 import '../../domain/usecases/auth_usecases.dart';
 import '../../domain/usecases/obra_usecases.dart';
 import '../../domain/usecases/tarea_usecases.dart';
 import '../../presentation/bloc/auth/auth_bloc.dart';
 import '../../presentation/bloc/obra/obra_bloc.dart';
 import '../../presentation/bloc/tarea/tarea_bloc.dart';
+import '../../presentation/bloc/theme/theme_bloc.dart';
 
 final getIt = GetIt.instance;
 
@@ -32,6 +34,7 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton<HttpService>(
     () => HttpService(tokenStorage: getIt<TokenStorageService>()),
   );
+  getIt.registerLazySingleton<ThemeService>(() => ThemeService());
 
   // --- DATASOURCES ---
   getIt.registerLazySingleton<UserDataSource>(
@@ -41,7 +44,10 @@ Future<void> configureDependencies() async {
     ),
   );
   getIt.registerLazySingleton<ObraDataSource>(
-    () => ObraDataSourceImpl(httpService: getIt<HttpService>()),
+    () => ObraDataSourceImpl(
+      httpService: getIt<HttpService>(),
+      tokenStorage: getIt<TokenStorageService>(),
+    ),
   );
   getIt.registerLazySingleton<TareaDataSource>(() => TareaDataSourceImpl());
 
@@ -71,9 +77,6 @@ Future<void> configureDependencies() async {
 
   // Obra
   getIt.registerLazySingleton(() => GetObrasUseCase(getIt<ObraRepository>()));
-  getIt.registerLazySingleton(
-    () => GetObraByIdUseCase(getIt<ObraRepository>()),
-  );
   getIt.registerLazySingleton(
     () => GetObrasByResponsableUseCase(getIt<ObraRepository>()),
   );
@@ -113,7 +116,6 @@ Future<void> configureDependencies() async {
   getIt.registerFactory(
     () => ObraBloc(
       getObrasUseCase: getIt<GetObrasUseCase>(),
-      getObraByIdUseCase: getIt<GetObraByIdUseCase>(),
       getObrasByResponsableUseCase: getIt<GetObrasByResponsableUseCase>(),
       createObraUseCase: getIt<CreateObraUseCase>(),
       updateObraUseCase: getIt<UpdateObraUseCase>(),
@@ -130,5 +132,8 @@ Future<void> configureDependencies() async {
       updateTareaUseCase: getIt<UpdateTareaUseCase>(),
       deleteTareaUseCase: getIt<DeleteTareaUseCase>(),
     ),
+  );
+  getIt.registerFactory(
+    () => ThemeBloc(getIt<ThemeService>()),
   );
 }

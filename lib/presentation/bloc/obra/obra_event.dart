@@ -69,4 +69,3 @@ class SelectObra extends ObraEvent {
 class ClearSelection extends ObraEvent {
   const ClearSelection();
 }
-

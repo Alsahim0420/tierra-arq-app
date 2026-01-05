@@ -9,7 +9,7 @@ import 'dart:ui';
 
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:tierra_app/main.dart';
+import 'package:tierra_app/presentation/app/app.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

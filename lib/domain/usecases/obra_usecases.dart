@@ -1,7 +1,7 @@
 import '../../core/repositories/obra_repository.dart';
 import '../../core/entities/obra_entity.dart';
 
-/// Use case para obtener todas las obras
+/// Use case para obtener todas las obras del usuario logueado
 class GetObrasUseCase {
   final ObraRepository _repository;
 
@@ -12,16 +12,16 @@ class GetObrasUseCase {
   }
 }
 
-/// Use case para obtener una obra por ID
-class GetObraByIdUseCase {
-  final ObraRepository _repository;
+// /// Use case para obtener una obra por ID
+// class GetObraByIdUseCase {
+//   final ObraRepository _repository;
 
-  GetObraByIdUseCase(this._repository);
+//   GetObraByIdUseCase(this._repository);
 
-  Future<ObraEntity?> call(String id) async {
-    return await _repository.getObraById(id);
-  }
-}
+//   Future<ObraEntity?> call(String id) async {
+//     return await _repository.getObras(id);
+//   }
+// }
 
 /// Use case para obtener obras por responsable
 class GetObrasByResponsableUseCase {
@@ -66,4 +66,3 @@ class DeleteObraUseCase {
     return await _repository.deleteObra(id);
   }
 }
-
