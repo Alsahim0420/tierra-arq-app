@@ -67,6 +67,28 @@ class UpdateTareaUseCase {
   }
 }
 
+/// Use case para actualizar el estado de una tarea
+class UpdateTareaStateUseCase {
+  final TareaRepository _repository;
+
+  UpdateTareaStateUseCase(this._repository);
+
+  Future<TareaEntity> call(String obraId, String tareaId, String state) async {
+    return await _repository.updateTareaState(obraId, tareaId, state);
+  }
+}
+
+/// Use case para actualizar las evidencias de una tarea
+class UpdateTareaEvidencesUseCase {
+  final TareaRepository _repository;
+
+  UpdateTareaEvidencesUseCase(this._repository);
+
+  Future<TareaEntity> call(String obraId, String tareaId, List<String> evidences) async {
+    return await _repository.updateTareaEvidences(obraId, tareaId, evidences);
+  }
+}
+
 /// Use case para eliminar una tarea
 class DeleteTareaUseCase {
   final TareaRepository _repository;

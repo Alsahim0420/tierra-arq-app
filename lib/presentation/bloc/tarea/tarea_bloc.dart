@@ -10,6 +10,8 @@ class TareaBloc extends Bloc<TareaEvent, TareaState> {
   final GetTareasByUserUseCase getTareasByUserUseCase;
   final CreateTareaUseCase createTareaUseCase;
   final UpdateTareaUseCase updateTareaUseCase;
+  final UpdateTareaStateUseCase updateTareaStateUseCase;
+  final UpdateTareaEvidencesUseCase updateTareaEvidencesUseCase;
   final DeleteTareaUseCase deleteTareaUseCase;
 
   TareaBloc({
@@ -19,6 +21,8 @@ class TareaBloc extends Bloc<TareaEvent, TareaState> {
     required this.getTareasByUserUseCase,
     required this.createTareaUseCase,
     required this.updateTareaUseCase,
+    required this.updateTareaStateUseCase,
+    required this.updateTareaEvidencesUseCase,
     required this.deleteTareaUseCase,
   }) : super(const TareaInitial()) {
     on<LoadTareas>(_onLoadTareas);
@@ -27,6 +31,8 @@ class TareaBloc extends Bloc<TareaEvent, TareaState> {
     on<LoadTareasByUser>(_onLoadTareasByUser);
     on<CreateTarea>(_onCreateTarea);
     on<UpdateTarea>(_onUpdateTarea);
+    on<UpdateTareaState>(_onUpdateTareaState);
+    on<UpdateTareaEvidences>(_onUpdateTareaEvidences);
     on<DeleteTarea>(_onDeleteTarea);
     on<SelectTarea>(_onSelectTarea);
     on<ClearSelection>(_onClearSelection);
@@ -135,9 +141,74 @@ class TareaBloc extends Bloc<TareaEvent, TareaState> {
               ? tarea
               : currentState.selectedTarea,
         ));
+      } else {
+        // Si no hay estado cargado, crear uno nuevo con la tarea actualizada
+        emit(TareaLoaded(tareas: [tarea], selectedTarea: tarea));
       }
     } catch (e) {
       emit(TareaError('Error al actualizar tarea: $e'));
+    }
+  }
+
+  Future<void> _onUpdateTareaState(
+    UpdateTareaState event,
+    Emitter<TareaState> emit,
+  ) async {
+    emit(const TareaLoading());
+    try {
+      final tarea = await updateTareaStateUseCase(
+        event.obraId,
+        event.tareaId,
+        event.state,
+      );
+      final currentState = state;
+      if (currentState is TareaLoaded) {
+        final updatedTareas = currentState.tareas.map((t) {
+          return t.id == tarea.id ? tarea : t;
+        }).toList();
+        emit(TareaLoaded(
+          tareas: updatedTareas,
+          selectedTarea: currentState.selectedTarea?.id == tarea.id
+              ? tarea
+              : currentState.selectedTarea,
+        ));
+      } else {
+        // Si no hay estado cargado, crear uno nuevo con la tarea actualizada
+        emit(TareaLoaded(tareas: [tarea], selectedTarea: tarea));
+      }
+    } catch (e) {
+      emit(TareaError('Error al actualizar estado de tarea: $e'));
+    }
+  }
+
+  Future<void> _onUpdateTareaEvidences(
+    UpdateTareaEvidences event,
+    Emitter<TareaState> emit,
+  ) async {
+    emit(const TareaLoading());
+    try {
+      final tarea = await updateTareaEvidencesUseCase(
+        event.obraId,
+        event.tareaId,
+        event.evidences,
+      );
+      final currentState = state;
+      if (currentState is TareaLoaded) {
+        final updatedTareas = currentState.tareas.map((t) {
+          return t.id == tarea.id ? tarea : t;
+        }).toList();
+        emit(TareaLoaded(
+          tareas: updatedTareas,
+          selectedTarea: currentState.selectedTarea?.id == tarea.id
+              ? tarea
+              : currentState.selectedTarea,
+        ));
+      } else {
+        // Si no hay estado cargado, crear uno nuevo con la tarea actualizada
+        emit(TareaLoaded(tareas: [tarea], selectedTarea: tarea));
+      }
+    } catch (e) {
+      emit(TareaError('Error al actualizar evidencias de tarea: $e'));
     }
   }
 

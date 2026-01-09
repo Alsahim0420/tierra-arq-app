@@ -12,7 +12,13 @@ class FormatUtils {
   }
 
   static Color getStateColor(String state) {
-    switch (state.toLowerCase().trim()) {
+    // Primero normalizar el texto del estado para asegurar consistencia
+    final normalizedText = formatStateText(state);
+    final normalized = normalizedText.toLowerCase().trim();
+    
+    switch (normalized) {
+      case 'finalizado':
+      case 'finalizada':
       case 'completada':
       case 'completado':
       case 'completed':
@@ -37,8 +43,12 @@ class FormatUtils {
     if (normalized == 'pendiente' || normalized == 'pending') {
       return 'pendiente';
     }
-    if (normalized == 'completada' || normalized == 'completado' || normalized == 'completed') {
-      return 'completada';
+    if (normalized == 'finalizado' ||
+        normalized == 'finalizada' ||
+        normalized == 'completada' ||
+        normalized == 'completado' ||
+        normalized == 'completed') {
+      return 'finalizado';
     }
     // Si no coincide, devolver el original
     return state;

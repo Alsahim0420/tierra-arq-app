@@ -10,6 +10,7 @@ class TareaEntity {
     required this.state,
     required this.duration,
     this.assignedTo,
+    this.observation,
   });
 
   final String id;
@@ -19,5 +20,6 @@ class TareaEntity {
   final String state;
   final int duration;
   final UserEntity? assignedTo;
+  final String? observation;
 }
 

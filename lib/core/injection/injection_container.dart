@@ -14,6 +14,7 @@ import '../../core/repositories/tarea_repository.dart';
 import '../../core/services/token_storage_service.dart';
 import '../../core/services/http_service.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/services/cloudinary_service.dart';
 import '../../domain/usecases/auth_usecases.dart';
 import '../../domain/usecases/obra_usecases.dart';
 import '../../domain/usecases/tarea_usecases.dart';
@@ -35,6 +36,13 @@ Future<void> configureDependencies() async {
     () => HttpService(tokenStorage: getIt<TokenStorageService>()),
   );
   getIt.registerLazySingleton<ThemeService>(() => ThemeService());
+  getIt.registerLazySingleton<CloudinaryService>(
+    () => CloudinaryService(
+      cloudName: 'dxywuapq7',
+      apiKey: '836177411616825',
+      apiSecret: 'ZoUJBhDwEA8AJ5tOsi2lBi-B-KY',
+    ),
+  );
 
   // --- DATASOURCES ---
   getIt.registerLazySingleton<UserDataSource>(
@@ -49,7 +57,11 @@ Future<void> configureDependencies() async {
       tokenStorage: getIt<TokenStorageService>(),
     ),
   );
-  getIt.registerLazySingleton<TareaDataSource>(() => TareaDataSourceImpl());
+  getIt.registerLazySingleton<TareaDataSource>(
+    () => TareaDataSourceImpl(
+      httpService: getIt<HttpService>(),
+    ),
+  );
 
   // --- REPOSITORIES ---
   getIt.registerLazySingleton<UserRepository>(
@@ -102,6 +114,12 @@ Future<void> configureDependencies() async {
     () => UpdateTareaUseCase(getIt<TareaRepository>()),
   );
   getIt.registerLazySingleton(
+    () => UpdateTareaStateUseCase(getIt<TareaRepository>()),
+  );
+  getIt.registerLazySingleton(
+    () => UpdateTareaEvidencesUseCase(getIt<TareaRepository>()),
+  );
+  getIt.registerLazySingleton(
     () => DeleteTareaUseCase(getIt<TareaRepository>()),
   );
 
@@ -130,6 +148,8 @@ Future<void> configureDependencies() async {
       getTareasByUserUseCase: getIt<GetTareasByUserUseCase>(),
       createTareaUseCase: getIt<CreateTareaUseCase>(),
       updateTareaUseCase: getIt<UpdateTareaUseCase>(),
+      updateTareaStateUseCase: getIt<UpdateTareaStateUseCase>(),
+      updateTareaEvidencesUseCase: getIt<UpdateTareaEvidencesUseCase>(),
       deleteTareaUseCase: getIt<DeleteTareaUseCase>(),
     ),
   );

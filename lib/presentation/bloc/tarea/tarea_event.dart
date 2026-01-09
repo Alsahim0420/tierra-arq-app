@@ -69,6 +69,28 @@ class DeleteTarea extends TareaEvent {
   List<Object?> get props => [id, obraId];
 }
 
+class UpdateTareaState extends TareaEvent {
+  final String obraId;
+  final String tareaId;
+  final String state;
+
+  const UpdateTareaState(this.obraId, this.tareaId, this.state);
+
+  @override
+  List<Object?> get props => [obraId, tareaId, state];
+}
+
+class UpdateTareaEvidences extends TareaEvent {
+  final String obraId;
+  final String tareaId;
+  final List<String> evidences;
+
+  const UpdateTareaEvidences(this.obraId, this.tareaId, this.evidences);
+
+  @override
+  List<Object?> get props => [obraId, tareaId, evidences];
+}
+
 class SelectTarea extends TareaEvent {
   final TareaEntity tarea;
 

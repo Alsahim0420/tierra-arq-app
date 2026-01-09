@@ -184,6 +184,26 @@ class ObraDataSourceImpl implements ObraDataSource {
     );
   }
 
+  /// Normalizar el estado de la tarea desde la API
+  String _normalizeTareaState(String state) {
+    final normalized = state.toLowerCase().trim();
+    if (normalized == 'en_proceso' || normalized == 'en_progreso') {
+      return 'en progreso';
+    }
+    if (normalized == 'pendiente' || normalized == 'pending') {
+      return 'pendiente';
+    }
+    if (normalized == 'finalizado' ||
+        normalized == 'finalizada' ||
+        normalized == 'completada' ||
+        normalized == 'completado' ||
+        normalized == 'completed') {
+      return 'finalizado';
+    }
+    // Si no coincide, devolver el valor normalizado tal cual
+    return normalized;
+  }
+
   /// Mapear tareas desde API
   List<TareaEntity> _mapTareasFromApi(List<dynamic> data) {
     return data
@@ -223,15 +243,16 @@ class ObraDataSourceImpl implements ObraDataSource {
                 tareaData['name']?.toString() ??
                 '',
             description: tareaData['description']?.toString() ?? '',
-            state:
+            state: _normalizeTareaState(
                 tareaData['status']?.toString() ??
                 tareaData['state']?.toString() ??
-                'pendiente',
+                'pendiente'),
             duration: tareaData['duration'] != null
                 ? int.tryParse(tareaData['duration'].toString()) ?? 0
                 : 0,
             evidences: evidences,
             assignedTo: assignedTo,
+            observation: tareaData['observation']?.toString(),
           );
         })
         .whereType<TareaEntity>()

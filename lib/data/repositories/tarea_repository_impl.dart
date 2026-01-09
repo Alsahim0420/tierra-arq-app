@@ -39,6 +39,24 @@ class TareaRepositoryImpl implements TareaRepository {
   }
 
   @override
+  Future<TareaEntity> updateTareaState(
+    String obraId,
+    String tareaId,
+    String state,
+  ) async {
+    return await _dataSource.updateTareaState(obraId, tareaId, state);
+  }
+
+  @override
+  Future<TareaEntity> updateTareaEvidences(
+    String obraId,
+    String tareaId,
+    List<String> evidences,
+  ) async {
+    return await _dataSource.updateTareaEvidences(obraId, tareaId, evidences);
+  }
+
+  @override
   Future<void> deleteTarea(String id, String obraId) async {
     return await _dataSource.deleteTarea(id, obraId);
   }
