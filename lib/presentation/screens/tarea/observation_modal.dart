@@ -164,15 +164,16 @@ class _ObservationModalState extends State<ObservationModal> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.8,
         minHeight: MediaQuery.of(context).size.height * 0.4,
       ),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1B1B1B),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1B1B1B) : const Color(0xFFFFFFFF),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         top: false,
@@ -187,7 +188,7 @@ class _ObservationModalState extends State<ObservationModal> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.white24,
+                    color: isDark ? Colors.white24 : Colors.black26,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -204,14 +205,18 @@ class _ObservationModalState extends State<ObservationModal> {
                       style: textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.5,
+                        color: isDark ? Colors.white : Colors.black87,
                       ),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, size: 24),
+                    icon: Icon(Icons.close, size: 24),
+                    color: isDark ? Colors.white : Colors.black87,
                     onPressed: () => Navigator.pop(context),
                     style: IconButton.styleFrom(
-                      backgroundColor: Colors.white.withValues(alpha: 0.1),
+                      backgroundColor: isDark
+                          ? Colors.white.withValues(alpha: 0.1)
+                          : Colors.black.withValues(alpha: 0.1),
                     ),
                   ),
                 ],
@@ -233,7 +238,7 @@ class _ObservationModalState extends State<ObservationModal> {
                       'Tarea: ${widget.tarea.name}',
                       style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: Colors.white70,
+                        color: isDark ? Colors.white70 : Colors.black54,
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -241,7 +246,7 @@ class _ObservationModalState extends State<ObservationModal> {
                       'Agregar o editar observaciones',
                       style: textTheme.titleSmall?.copyWith(
                         fontWeight: FontWeight.w500,
-                        color: Colors.white54,
+                        color: isDark ? Colors.white54 : Colors.black54,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -249,14 +254,16 @@ class _ObservationModalState extends State<ObservationModal> {
                       controller: _observationController,
                       maxLines: 10,
                       minLines: 5,
-                      style: textTheme.bodyMedium,
+                      style: textTheme.bodyMedium?.copyWith(
+                        color: isDark ? Colors.white : Colors.black87,
+                      ),
                       decoration: InputDecoration(
                         hintText: 'Escribe tus observaciones aquí...',
                         hintStyle: textTheme.bodyMedium?.copyWith(
-                          color: Colors.white38,
+                          color: isDark ? Colors.white38 : Colors.black38,
                         ),
                         filled: true,
-                        fillColor: const Color(0xFF2B2B2B),
+                        fillColor: isDark ? const Color(0xFF2B2B2B) : const Color(0xFFF5F5F5),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide.none,
@@ -264,7 +271,9 @@ class _ObservationModalState extends State<ObservationModal> {
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.1),
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.1)
+                                : Colors.black.withValues(alpha: 0.1),
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
@@ -290,10 +299,12 @@ class _ObservationModalState extends State<ObservationModal> {
                 bottom: 24 + MediaQuery.of(context).viewInsets.bottom,
               ),
               decoration: BoxDecoration(
-                color: const Color(0xFF1B1B1B),
+                color: isDark ? const Color(0xFF1B1B1B) : const Color(0xFFFFFFFF),
                 border: Border(
                   top: BorderSide(
-                    color: Colors.white.withValues(alpha: 0.1),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : Colors.black.withValues(alpha: 0.1),
                     width: 1,
                   ),
                 ),

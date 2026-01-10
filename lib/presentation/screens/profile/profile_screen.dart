@@ -59,6 +59,7 @@ class ProfileScreen extends StatelessWidget {
                     user.fullName,
                     style: textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.white : Colors.black87,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -74,7 +75,7 @@ class ProfileScreen extends StatelessWidget {
                     child: Text(
                       user.role == 'admin' ? 'Administrador' : 'Maestro',
                       style: textTheme.bodySmall?.copyWith(
-                        color: TierraApp.primary,
+                        color: isDark ? TierraApp.primary : const Color(0xFF8B5A3C),
                         fontWeight: FontWeight.w600,
                       ),
                     ),

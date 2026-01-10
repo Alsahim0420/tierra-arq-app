@@ -21,19 +21,21 @@ class ObrasListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
           'Mis Obras',
           style: textTheme.headlineSmall?.copyWith(
-            color: Colors.white,
+            color: isDark ? Colors.white : Colors.black87,
             letterSpacing: -0.4,
           ),
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.person_outline),
+            icon: Icon(Icons.person_outline),
+            color: isDark ? Colors.white : Colors.black87,
             onPressed: () {
               Navigator.push(
                 context,
@@ -65,7 +67,9 @@ class ObrasListScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(
                     state.message,
-                    style: textTheme.bodyLarge?.copyWith(color: Colors.white70),
+                    style: textTheme.bodyLarge?.copyWith(
+                      color: isDark ? Colors.white70 : Colors.black54,
+                    ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
@@ -90,13 +94,13 @@ class ObrasListScreen extends StatelessWidget {
                     Icon(
                       Icons.construction_outlined,
                       size: 64,
-                      color: Colors.white30,
+                      color: isDark ? Colors.white30 : Colors.black26,
                     ),
                     const SizedBox(height: 16),
                     Text(
                       'No tienes obras asignadas',
                       style: textTheme.titleMedium?.copyWith(
-                        color: Colors.white70,
+                        color: isDark ? Colors.white70 : Colors.black54,
                       ),
                     ),
                   ],
@@ -134,6 +138,7 @@ class ObrasListScreen extends StatelessWidget {
                         obra.title,
                         style: textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white : Colors.black87,
                         ),
                       ),
                       subtitle: Column(
@@ -146,7 +151,7 @@ class ObrasListScreen extends StatelessWidget {
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                               style: textTheme.bodySmall?.copyWith(
-                                color: Colors.white70,
+                                color: isDark ? Colors.white70 : Colors.black54,
                               ),
                             ),
                           const SizedBox(height: 8),
@@ -155,13 +160,13 @@ class ObrasListScreen extends StatelessWidget {
                               Icon(
                                 Icons.location_on,
                                 size: 16,
-                                color: Colors.white54,
+                                color: isDark ? Colors.white54 : Colors.black54,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 '${obra.city}, ${obra.location}',
                                 style: textTheme.bodySmall?.copyWith(
-                                  color: Colors.white54,
+                                  color: isDark ? Colors.white54 : Colors.black54,
                                 ),
                               ),
                             ],
@@ -173,13 +178,13 @@ class ObrasListScreen extends StatelessWidget {
                                 Icon(
                                   Icons.assignment,
                                   size: 16,
-                                  color: Colors.white54,
+                                  color: isDark ? Colors.white54 : Colors.black54,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
                                   '${obra.tareas.length} tarea${obra.tareas.length > 1 ? 's' : ''}',
                                   style: textTheme.bodySmall?.copyWith(
-                                    color: Colors.white54,
+                                    color: isDark ? Colors.white54 : Colors.black54,
                                   ),
                                 ),
                               ],
@@ -189,7 +194,7 @@ class ObrasListScreen extends StatelessWidget {
                       ),
                       trailing: Icon(
                         Icons.chevron_right,
-                        color: Colors.white54,
+                        color: isDark ? Colors.white54 : Colors.black54,
                       ),
                       onTap: () {
                         Navigator.push(
@@ -212,4 +217,7 @@ class ObrasListScreen extends StatelessWidget {
     );
   }
 }
+
+
+
 
