@@ -15,12 +15,17 @@ class InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: Colors.white54),
+          Icon(
+            icon,
+            size: 20,
+            color: isDark ? Colors.white54 : Colors.black54,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -28,13 +33,16 @@ class InfoRow extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: textTheme.bodySmall?.copyWith(color: Colors.white54),
+                  style: textTheme.bodySmall?.copyWith(
+                    color: isDark ? Colors.white54 : Colors.black54,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   value,
                   style: textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w500,
+                    color: isDark ? Colors.white : Colors.black87,
                   ),
                 ),
               ],

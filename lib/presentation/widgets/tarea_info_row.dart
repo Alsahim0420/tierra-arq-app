@@ -15,15 +15,23 @@ class TareaInfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Row(
       children: [
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.1),
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.1)
+                : Colors.black.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, size: 20, color: Colors.white70),
+          child: Icon(
+            icon,
+            size: 20,
+            color: isDark ? Colors.white70 : Colors.black54,
+          ),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -32,13 +40,16 @@ class TareaInfoRow extends StatelessWidget {
             children: [
               Text(
                 label,
-                style: textTheme.bodySmall?.copyWith(color: Colors.white54),
+                style: textTheme.bodySmall?.copyWith(
+                  color: isDark ? Colors.white54 : Colors.black54,
+                ),
               ),
               const SizedBox(height: 2),
               Text(
                 value,
                 style: textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w500,
+                  color: isDark ? Colors.white : Colors.black87,
                 ),
               ),
             ],

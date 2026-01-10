@@ -13,6 +13,7 @@ class InfoSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -21,7 +22,7 @@ class InfoSection extends StatelessWidget {
           title,
           style: textTheme.titleMedium?.copyWith(
             fontWeight: FontWeight.w600,
-            color: Colors.white70,
+            color: isDark ? Colors.white70 : Colors.black54,
           ),
         ),
         const SizedBox(height: 12),

@@ -129,6 +129,7 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return BlocBuilder<ObraBloc, ObraState>(
       builder: (context, obraState) {
@@ -179,9 +180,9 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.8,
-      decoration: const BoxDecoration(
-        color: Color(0xFF1B1B1B),
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1B1B1B) : const Color(0xFFFFFFFF),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
       ),
       child: SafeArea(
         top: false,
@@ -201,7 +202,7 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.white24,
+                    color: isDark ? Colors.white24 : Colors.black26,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -215,14 +216,18 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                       style: textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.w600,
                         letterSpacing: -0.5,
+                        color: isDark ? Colors.white : Colors.black87,
                       ),
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.close, size: 24),
+                    icon: Icon(Icons.close, size: 24),
+                    color: isDark ? Colors.white : Colors.black87,
                     onPressed: () => Navigator.pop(context),
                     style: IconButton.styleFrom(
-                      backgroundColor: Colors.white.withValues(alpha: 0.1),
+                      backgroundColor: isDark
+                          ? Colors.white.withValues(alpha: 0.1)
+                          : Colors.black.withValues(alpha: 0.1),
                     ),
                   ),
                 ],
@@ -232,16 +237,18 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                 'Estado',
                 style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: Colors.white70,
+                  color: isDark ? Colors.white70 : Colors.black54,
                 ),
               ),
               const SizedBox(height: 12),
               Container(
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2B2B2B),
+                  color: isDark ? const Color(0xFF2B2B2B) : const Color(0xFFF5F5F5),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.1),
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : Colors.black.withValues(alpha: 0.1),
                   ),
                 ),
                 child: Builder(
@@ -293,13 +300,14 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                       vertical: 16,
                     ),
                   ),
-                  dropdownColor: const Color(0xFF2B2B2B),
+                  dropdownColor: isDark ? const Color(0xFF2B2B2B) : const Color(0xFFF5F5F5),
                   style: textTheme.bodyLarge?.copyWith(
                     fontWeight: FontWeight.w500,
+                    color: isDark ? Colors.white : Colors.black87,
                   ),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.keyboard_arrow_down,
-                    color: Colors.white70,
+                    color: isDark ? Colors.white70 : Colors.black54,
                   ),
                   selectedItemBuilder: (BuildContext context) {
                     return _estados.map((estado) {
@@ -389,7 +397,7 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                   'Descripción',
                   style: textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: Colors.white70,
+                    color: isDark ? Colors.white70 : Colors.black54,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -397,12 +405,15 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2B2B2B),
+                    color: isDark ? const Color(0xFF2B2B2B) : const Color(0xFFF5F5F5),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
                     tarea.description,
-                    style: textTheme.bodyMedium?.copyWith(height: 1.5),
+                    style: textTheme.bodyMedium?.copyWith(
+                      height: 1.5,
+                      color: isDark ? Colors.white : Colors.black87,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 32),
@@ -411,12 +422,12 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                 'Información',
                 style: textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: Colors.white70,
+                  color: isDark ? Colors.white70 : Colors.black54,
                 ),
               ),
               const SizedBox(height: 12),
               Card(
-                color: const Color(0xFF2B2B2B),
+                color: isDark ? const Color(0xFF2B2B2B) : const Color(0xFFF5F5F5),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -459,7 +470,7 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                               Icon(
                                 Icons.arrow_forward_ios,
                                 size: 16,
-                                color: Colors.white54,
+                                color: isDark ? Colors.white54 : Colors.black54,
                               ),
                             ],
                           ),
@@ -485,7 +496,7 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                     'Observaciones',
                     style: textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: Colors.white70,
+                      color: isDark ? Colors.white70 : Colors.black54,
                     ),
                   ),
                   TextButton.icon(
@@ -514,10 +525,12 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2B2B2B),
+                    color: isDark ? const Color(0xFF2B2B2B) : const Color(0xFFF5F5F5),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.1),
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.1)
+                          : Colors.black.withValues(alpha: 0.1),
                     ),
                   ),
                   child: tarea.observation != null && tarea.observation!.isNotEmpty
@@ -525,6 +538,7 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                           tarea.observation!,
                           style: textTheme.bodyMedium?.copyWith(
                             height: 1.5,
+                            color: isDark ? Colors.white70 : Colors.black87,
                           ),
                         )
                       : Row(
@@ -532,13 +546,17 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                             Icon(
                               Icons.note_add_outlined,
                               size: 20,
-                              color: Colors.white.withValues(alpha: 0.5),
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.5)
+                                  : Colors.black.withValues(alpha: 0.3),
                             ),
                             const SizedBox(width: 8),
                             Text(
                               'Toca para agregar observaciones',
                               style: textTheme.bodyMedium?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.5),
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.5)
+                                    : Colors.black.withValues(alpha: 0.5),
                                 fontStyle: FontStyle.italic,
                               ),
                             ),
@@ -556,14 +574,14 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                       'Evidencias',
                       style: textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: Colors.white70,
+                        color: isDark ? Colors.white70 : Colors.black54,
                       ),
                     ),
                     if (_pendingEvidences.isNotEmpty)
                       Text(
                         '${_pendingEvidences.length}',
                         style: textTheme.bodySmall?.copyWith(
-                          color: Colors.white54,
+                          color: isDark ? Colors.white54 : Colors.black54,
                         ),
                       ),
                   ],
@@ -594,10 +612,10 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                                     fit: BoxFit.cover,
                                     errorBuilder: (context, error, stackTrace) {
                                       return Container(
-                                        color: Colors.grey.shade800,
-                                        child: const Icon(
+                                        color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                                        child: Icon(
                                           Icons.broken_image,
-                                          color: Colors.white54,
+                                          color: isDark ? Colors.white54 : Colors.black54,
                                         ),
                                       );
                                     },
@@ -607,10 +625,10 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                                     fit: BoxFit.cover,
                                     errorBuilder: (context, error, stackTrace) {
                                       return Container(
-                                        color: Colors.grey.shade800,
-                                        child: const Icon(
+                                        color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                                        child: Icon(
                                           Icons.broken_image,
-                                          color: Colors.white54,
+                                          color: isDark ? Colors.white54 : Colors.black54,
                                         ),
                                       );
                                     },
@@ -671,8 +689,11 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                         label: const Text('Galería'),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
+                          foregroundColor: isDark ? Colors.white : Colors.black87,
                           side: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.3),
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.3)
+                                : Colors.black.withValues(alpha: 0.3),
                           ),
                         ),
                       ),
@@ -685,8 +706,11 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                         label: const Text('Cámara'),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 12),
+                          foregroundColor: isDark ? Colors.white : Colors.black87,
                           side: BorderSide(
-                            color: Colors.white.withValues(alpha: 0.3),
+                            color: isDark
+                                ? Colors.white.withValues(alpha: 0.3)
+                                : Colors.black.withValues(alpha: 0.3),
                           ),
                         ),
                       ),
@@ -702,7 +726,7 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                   Text(
                     'Subiendo evidencias...',
                     style: textTheme.bodySmall?.copyWith(
-                      color: Colors.white54,
+                      color: isDark ? Colors.white54 : Colors.black54,
                     ),
                     textAlign: TextAlign.center,
                   ),

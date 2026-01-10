@@ -16,6 +16,7 @@ class ObraDetailScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return BlocBuilder<ObraBloc, ObraState>(
       builder: (context, state) {
@@ -38,7 +39,7 @@ class ObraDetailScreen extends StatelessWidget {
             title: Text(
               currentObra.title,
               style: textTheme.headlineSmall?.copyWith(
-                color: Colors.white,
+                color: isDark ? Colors.white : Colors.black87,
                 letterSpacing: -0.4,
               ),
             ),
@@ -58,6 +59,7 @@ class ObraDetailScreen extends StatelessWidget {
                           'Información de la obra',
                           style: textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white : Colors.black87,
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -65,11 +67,16 @@ class ObraDetailScreen extends StatelessWidget {
                           Text(
                             'Descripción',
                             style: textTheme.labelLarge?.copyWith(
-                              color: Colors.white70,
+                              color: isDark ? Colors.white70 : Colors.black54,
                             ),
                           ),
                           const SizedBox(height: 4),
-                          Text(currentObra.description, style: textTheme.bodyMedium),
+                          Text(
+                            currentObra.description,
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
                           const SizedBox(height: 16),
                         ],
                         Row(
@@ -77,13 +84,15 @@ class ObraDetailScreen extends StatelessWidget {
                             Icon(
                               Icons.location_on,
                               size: 20,
-                              color: Colors.white70,
+                              color: isDark ? Colors.white70 : Colors.black54,
                             ),
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 '${currentObra.city}, ${currentObra.location}',
-                                style: textTheme.bodyMedium,
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: isDark ? Colors.white : Colors.black87,
+                                ),
                               ),
                             ),
                           ],
@@ -94,12 +103,14 @@ class ObraDetailScreen extends StatelessWidget {
                             Icon(
                               Icons.attach_money,
                               size: 20,
-                              color: Colors.white70,
+                              color: isDark ? Colors.white70 : Colors.black54,
                             ),
                             const SizedBox(width: 8),
                             Text(
                               'Costo: ${FormatUtils.formatCurrency(currentObra.costo)}',
-                              style: textTheme.bodyMedium,
+                              style: textTheme.bodyMedium?.copyWith(
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
                             ),
                           ],
                         ),
@@ -107,11 +118,17 @@ class ObraDetailScreen extends StatelessWidget {
                           const SizedBox(height: 12),
                           Row(
                             children: [
-                              Icon(Icons.person, size: 20, color: Colors.white70),
+                              Icon(
+                                Icons.person,
+                                size: 20,
+                                color: isDark ? Colors.white70 : Colors.black54,
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 'Responsable: ${currentObra.responsable.fullName}',
-                                style: textTheme.bodyMedium,
+                                style: textTheme.bodyMedium?.copyWith(
+                                  color: isDark ? Colors.white : Colors.black87,
+                                ),
                               ),
                             ],
                           ),
@@ -127,6 +144,7 @@ class ObraDetailScreen extends StatelessWidget {
                       'Tareas (${currentObra.tareas.length})',
                       style: textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : Colors.black87,
                       ),
                     ),
                   ],
@@ -142,13 +160,13 @@ class ObraDetailScreen extends StatelessWidget {
                             Icon(
                               Icons.assignment_outlined,
                               size: 48,
-                              color: Colors.white54,
+                              color: isDark ? Colors.white54 : Colors.black26,
                             ),
                             const SizedBox(height: 16),
                             Text(
                               'No hay tareas asignadas',
                               style: textTheme.bodyLarge?.copyWith(
-                                color: Colors.white70,
+                                color: isDark ? Colors.white70 : Colors.black54,
                               ),
                             ),
                           ],
@@ -174,6 +192,7 @@ class ObraDetailScreen extends StatelessWidget {
                                   tarea.name,
                                   style: textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.w600,
+                                    color: isDark ? Colors.white : Colors.black87,
                                   ),
                                 ),
                               ),
@@ -210,7 +229,7 @@ class ObraDetailScreen extends StatelessWidget {
                             Text(
                               tarea.description,
                               style: textTheme.bodyMedium?.copyWith(
-                                color: Colors.white70,
+                                color: isDark ? Colors.white70 : Colors.black54,
                               ),
                             ),
                           ],
@@ -221,13 +240,13 @@ class ObraDetailScreen extends StatelessWidget {
                                 Icon(
                                   Icons.access_time,
                                   size: 16,
-                                  color: Colors.white54,
+                                  color: isDark ? Colors.white54 : Colors.black54,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
                                   '${tarea.duration} días',
                                   style: textTheme.bodySmall?.copyWith(
-                                    color: Colors.white54,
+                                    color: isDark ? Colors.white54 : Colors.black54,
                                   ),
                                 ),
                                 const SizedBox(width: 16),
@@ -251,20 +270,20 @@ class ObraDetailScreen extends StatelessWidget {
                                       Icon(
                                         Icons.image,
                                         size: 16,
-                                        color: Colors.white54,
+                                        color: isDark ? Colors.white54 : Colors.black54,
                                       ),
                                       const SizedBox(width: 4),
                                       Text(
                                         '${tarea.evidences.length} evidencia${tarea.evidences.length > 1 ? 's' : ''}',
                                         style: textTheme.bodySmall?.copyWith(
-                                          color: Colors.white54,
+                                          color: isDark ? Colors.white54 : Colors.black54,
                                         ),
                                       ),
                                       const SizedBox(width: 4),
                                       Icon(
                                         Icons.arrow_forward_ios,
                                         size: 14,
-                                        color: Colors.white54,
+                                        color: isDark ? Colors.white54 : Colors.black54,
                                       ),
                                     ],
                                   ),
@@ -310,7 +329,7 @@ class ObraDetailScreen extends StatelessWidget {
                                         Text(
                                           tarea.observation!,
                                           style: textTheme.bodySmall?.copyWith(
-                                            color: Colors.white70,
+                                            color: isDark ? Colors.white70 : Colors.black87,
                                             height: 1.4,
                                           ),
                                           maxLines: 3,
@@ -330,13 +349,13 @@ class ObraDetailScreen extends StatelessWidget {
                                 Icon(
                                   Icons.person_outline,
                                   size: 16,
-                                  color: Colors.white54,
+                                  color: isDark ? Colors.white54 : Colors.black54,
                                 ),
                                 const SizedBox(width: 4),
                                 Text(
                                   'Asignado a: ${tarea.assignedTo!.fullName}',
                                   style: textTheme.bodySmall?.copyWith(
-                                    color: Colors.white54,
+                                    color: isDark ? Colors.white54 : Colors.black54,
                                   ),
                                 ),
                               ],
