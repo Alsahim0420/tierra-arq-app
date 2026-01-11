@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import '../../../core/entities/user_entity.dart' as core;
 import '../../app/app.dart';
 import '../../utils/user_role_utils.dart';
+import '../dashboard/dashboard_screen.dart';
 import '../obra/obras_list_screen.dart';
-import '../obra/obras_finalizadas_screen.dart';
 import '../user/users_list_screen.dart';
 import '../profile/profile_screen.dart';
 
@@ -22,17 +22,28 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
+  // Callback para cambiar a la vista de obras desde el dashboard
+  void _navigateToObras() {
+    setState(() {
+      _currentIndex = 1;
+    });
+  }
+
   // Lista de pantallas disponibles según el rol del usuario
   List<Widget> get _screens {
     final screens = <Widget>[
-      // Índice 0: Obras Activas (siempre visible)
+      // Índice 0: Dashboard (siempre visible)
+      DashboardScreen(
+        user: widget.user,
+        onLogout: widget.onLogout,
+        onNavigateToObras: _navigateToObras,
+      ),
+      // Índice 1: Obras Activas (siempre visible)
       ObrasListScreen(
         user: widget.user,
         onLogout: widget.onLogout,
         showFAB: true, // FAB solo en obras activas
       ),
-      // Índice 1: Obras Finalizadas (siempre visible)
-      ObrasFinalizadasScreen(user: widget.user, onLogout: widget.onLogout),
     ];
 
     // Índice 2: Gestión de Maestros (solo para administrador)
@@ -49,17 +60,17 @@ class _HomeScreenState extends State<HomeScreen> {
   // Lista de items de navegación según el rol
   List<_NavItem> get _navItems {
     final items = <_NavItem>[
-      // Índice 0: Obras Activas
+      // Índice 0: Dashboard
       const _NavItem(
-        icon: Icons.home_outlined,
-        activeIcon: Icons.home,
-        label: 'Obras',
+        icon: Icons.dashboard_outlined,
+        activeIcon: Icons.dashboard,
+        label: 'Inicio',
       ),
-      // Índice 1: Obras Finalizadas
+      // Índice 1: Obras Activas
       const _NavItem(
-        icon: Icons.assignment_turned_in_outlined,
-        activeIcon: Icons.assignment_turned_in,
-        label: 'Finalizadas',
+        icon: Icons.construction_outlined,
+        activeIcon: Icons.construction,
+        label: 'Obras',
       ),
     ];
 
@@ -190,7 +201,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   },
                   child: Icon(
                     isActive ? item.activeIcon : item.icon,
-                    key: ValueKey('${item.label}_${isActive}'),
+                    key: ValueKey('${item.label}_$isActive'),
                     size: isActive ? 26 : 22,
                     color: isActive
                         ? TierraApp.primary

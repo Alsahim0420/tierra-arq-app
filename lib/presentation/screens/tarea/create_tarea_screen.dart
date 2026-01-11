@@ -12,10 +12,7 @@ import '../../app/app.dart';
 import '../../utils/format_utils.dart';
 
 class CreateTareaScreen extends StatefulWidget {
-  const CreateTareaScreen({
-    super.key,
-    this.tarea,
-  });
+  const CreateTareaScreen({super.key, this.tarea});
 
   final TareaEntity? tarea;
 
@@ -42,11 +39,17 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController(text: widget.tarea?.name ?? '');
-    _descriptionController = TextEditingController(text: widget.tarea?.description ?? '');
-    _durationController = TextEditingController(text: widget.tarea?.duration.toString() ?? '');
-    _observationController = TextEditingController(text: widget.tarea?.observation ?? '');
-    _selectedState = widget.tarea != null 
-        ? FormatUtils.formatStateText(widget.tarea!.state) 
+    _descriptionController = TextEditingController(
+      text: widget.tarea?.description ?? '',
+    );
+    _durationController = TextEditingController(
+      text: widget.tarea?.duration.toString() ?? '',
+    );
+    _observationController = TextEditingController(
+      text: widget.tarea?.observation ?? '',
+    );
+    _selectedState = widget.tarea != null
+        ? FormatUtils.formatStateText(widget.tarea!.state)
         : 'pendiente';
   }
 
@@ -88,8 +91,8 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
           duration: duration,
           evidences: widget.tarea!.evidences,
           obraTareaId: widget.tarea!.obraTareaId,
-          observation: _observationController.text.trim().isEmpty 
-              ? null 
+          observation: _observationController.text.trim().isEmpty
+              ? null
               : _observationController.text.trim(),
         );
 
@@ -120,8 +123,8 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
           duration: duration,
           evidences: [],
           obraTareaId: null,
-          observation: _observationController.text.trim().isEmpty 
-              ? null 
+          observation: _observationController.text.trim().isEmpty
+              ? null
               : _observationController.text.trim(),
         );
 
@@ -155,10 +158,7 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
           _isEditing = false;
         });
 
-        CustomSnackBar.showError(
-          context,
-          message: 'Error: $e',
-        );
+        CustomSnackBar.showError(context, message: 'Error: $e');
       }
     }
   }
@@ -193,7 +193,7 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
             letterSpacing: -0.4,
           ),
         ),
-        backgroundColor: isDark ? const Color(0xFF1B1B1B) : TierraApp.primary,
+        backgroundColor: TierraApp.getAppBarColor(isDark),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Container(
@@ -210,7 +210,12 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
                     } else {
                       final tarea = _isEditMode ? _editedTarea : _createdTarea;
                       if (tarea != null) {
-                        return _buildTareaView(context, textTheme, isDark, tarea);
+                        return _buildTareaView(
+                          context,
+                          textTheme,
+                          isDark,
+                          tarea,
+                        );
                       } else {
                         // Fallback: mostrar formulario si por alguna razón tareaToShow es null
                         return _buildForm(context, textTheme, isDark);
@@ -252,7 +257,9 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
                           ),
                         )
                       : Text(
@@ -298,7 +305,9 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
                 color: isDark ? Colors.white38 : Colors.black38,
               ),
               filled: true,
-              fillColor: isDark ? const Color(0xFF2B2B2B) : Colors.grey.shade100,
+              fillColor: isDark
+                  ? const Color(0xFF2B2B2B)
+                  : Colors.grey.shade100,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -306,17 +315,14 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                  color: isDark 
+                  color: isDark
                       ? Colors.white.withValues(alpha: 0.1)
                       : Colors.grey.shade300,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: TierraApp.primary,
-                  width: 2,
-                ),
+                borderSide: BorderSide(color: TierraApp.primary, width: 2),
               ),
               contentPadding: const EdgeInsets.all(16),
             ),
@@ -350,7 +356,9 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
                 color: isDark ? Colors.white38 : Colors.black38,
               ),
               filled: true,
-              fillColor: isDark ? const Color(0xFF2B2B2B) : Colors.grey.shade100,
+              fillColor: isDark
+                  ? const Color(0xFF2B2B2B)
+                  : Colors.grey.shade100,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -358,17 +366,14 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                  color: isDark 
+                  color: isDark
                       ? Colors.white.withValues(alpha: 0.1)
                       : Colors.grey.shade300,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: TierraApp.primary,
-                  width: 2,
-                ),
+                borderSide: BorderSide(color: TierraApp.primary, width: 2),
               ),
               contentPadding: const EdgeInsets.all(16),
             ),
@@ -402,7 +407,9 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
                 color: isDark ? Colors.white38 : Colors.black38,
               ),
               filled: true,
-              fillColor: isDark ? const Color(0xFF2B2B2B) : Colors.grey.shade100,
+              fillColor: isDark
+                  ? const Color(0xFF2B2B2B)
+                  : Colors.grey.shade100,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -410,17 +417,14 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                  color: isDark 
+                  color: isDark
                       ? Colors.white.withValues(alpha: 0.1)
                       : Colors.grey.shade300,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: TierraApp.primary,
-                  width: 2,
-                ),
+                borderSide: BorderSide(color: TierraApp.primary, width: 2),
               ),
               contentPadding: const EdgeInsets.all(16),
             ),
@@ -450,7 +454,9 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
             value: _selectedState,
             decoration: InputDecoration(
               filled: true,
-              fillColor: isDark ? const Color(0xFF2B2B2B) : Colors.grey.shade100,
+              fillColor: isDark
+                  ? const Color(0xFF2B2B2B)
+                  : Colors.grey.shade100,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -458,17 +464,14 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                  color: isDark 
+                  color: isDark
                       ? Colors.white.withValues(alpha: 0.1)
                       : Colors.grey.shade300,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: TierraApp.primary,
-                  width: 2,
-                ),
+                borderSide: BorderSide(color: TierraApp.primary, width: 2),
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
@@ -485,8 +488,8 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
                 child: Text(estado),
               );
             }).toList(),
-            onChanged: (_isCreating || _isEditing) 
-                ? null 
+            onChanged: (_isCreating || _isEditing)
+                ? null
                 : (value) {
                     if (value != null) {
                       setState(() {
@@ -518,7 +521,9 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
                 color: isDark ? Colors.white38 : Colors.black38,
               ),
               filled: true,
-              fillColor: isDark ? const Color(0xFF2B2B2B) : Colors.grey.shade100,
+              fillColor: isDark
+                  ? const Color(0xFF2B2B2B)
+                  : Colors.grey.shade100,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide.none,
@@ -526,17 +531,14 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
               enabledBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
                 borderSide: BorderSide(
-                  color: isDark 
+                  color: isDark
                       ? Colors.white.withValues(alpha: 0.1)
                       : Colors.grey.shade300,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(
-                  color: TierraApp.primary,
-                  width: 2,
-                ),
+                borderSide: BorderSide(color: TierraApp.primary, width: 2),
               ),
               contentPadding: const EdgeInsets.all(16),
             ),
@@ -546,8 +548,8 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: (_isCreating || _isEditing) 
-                  ? null 
+              onPressed: (_isCreating || _isEditing)
+                  ? null
                   : (_isEditMode ? _editTarea : _saveTarea),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
@@ -581,7 +583,12 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
     );
   }
 
-  Widget _buildTareaView(BuildContext context, TextTheme textTheme, bool isDark, TareaEntity tarea) {
+  Widget _buildTareaView(
+    BuildContext context,
+    TextTheme textTheme,
+    bool isDark,
+    TareaEntity tarea,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -599,16 +606,15 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
             ),
             // Icono de editar
             IconButton(
-              icon: Icon(
-                Icons.edit_outlined,
-                color: TierraApp.primary,
-              ),
-              onPressed: _isEditing ? null : () {
-                setState(() {
-                  _createdTarea = null;
-                  _editedTarea = null;
-                });
-              },
+              icon: Icon(Icons.edit_outlined, color: TierraApp.primary),
+              onPressed: _isEditing
+                  ? null
+                  : () {
+                      setState(() {
+                        _createdTarea = null;
+                        _editedTarea = null;
+                      });
+                    },
               tooltip: 'Editar tarea',
             ),
           ],
@@ -732,4 +738,3 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
     );
   }
 }
-

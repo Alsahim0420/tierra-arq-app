@@ -14,14 +14,24 @@ import '../screens/auth/auth_wrapper.dart';
 class TierraApp extends StatelessWidget {
   const TierraApp({super.key});
 
+  // Colores principales
   static const primary = Color(0xFFD5B189);
+  static const secondary = Color(0xFF9E7A55);
+
+  // Colores para tema oscuro
   static const dark = Color(0xFF0E0E0E);
   static const card = Color(0xFF1B1B1B);
   static const muted = Color(0xFF8D8D8D);
 
+  // Colores para tema claro
   static const lightBackground = Color(0xFFF5F5F5);
   static const lightCard = Color(0xFFFFFFFF);
   static const lightMuted = Color(0xFF757575);
+
+  // Método para obtener el color del AppBar según el tema
+  static Color getAppBarColor(bool isDark) {
+    return isDark ? card : primary;
+  }
 
   ThemeData _buildDarkTheme() {
     return ThemeData(
@@ -29,7 +39,7 @@ class TierraApp extends StatelessWidget {
       brightness: Brightness.dark,
       colorScheme: ColorScheme.dark(
         primary: primary,
-        secondary: const Color(0xFF9E7A55),
+        secondary: secondary,
         surface: card,
       ),
       scaffoldBackgroundColor: dark,
@@ -60,7 +70,7 @@ class TierraApp extends StatelessWidget {
       brightness: Brightness.light,
       colorScheme: ColorScheme.light(
         primary: primary,
-        secondary: const Color(0xFF9E7A55),
+        secondary: secondary,
         surface: lightCard,
       ),
       scaffoldBackgroundColor: lightBackground,

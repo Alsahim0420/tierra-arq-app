@@ -23,7 +23,8 @@ class ObrasFinalizadasScreen extends StatefulWidget {
 
 class _ObrasFinalizadasScreenState extends State<ObrasFinalizadasScreen> {
   bool _hasLoaded = false;
-  ObraState? _lastValidState; // Mantener el último estado válido de obras finalizadas
+  ObraState?
+  _lastValidState; // Mantener el último estado válido de obras finalizadas
 
   @override
   void initState() {
@@ -79,7 +80,7 @@ class _ObrasFinalizadasScreenState extends State<ObrasFinalizadasScreen> {
             letterSpacing: -0.4,
           ),
         ),
-        backgroundColor: isDark ? const Color(0xFF1B1B1B) : TierraApp.primary,
+        backgroundColor: TierraApp.getAppBarColor(isDark),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: BlocConsumer<ObraBloc, ObraState>(
@@ -93,9 +94,11 @@ class _ObrasFinalizadasScreenState extends State<ObrasFinalizadasScreen> {
         builder: (context, state) {
           // Determinar qué estado renderizar
           ObraState stateToRender = state;
-          
+
           // Si el estado es de obras activas u otro tipo, usar el último estado válido de finalizadas
-          if (state is ObrasActivasLoading || state is ObraLoaded || state is ObraInitial) {
+          if (state is ObrasActivasLoading ||
+              state is ObraLoaded ||
+              state is ObraInitial) {
             // Si tenemos un estado válido previo, usarlo
             if (_lastValidState is ObrasFinalizadasLoaded) {
               stateToRender = _lastValidState!;
@@ -113,9 +116,9 @@ class _ObrasFinalizadasScreenState extends State<ObrasFinalizadasScreen> {
           }
 
           // Cargar obras finalizadas cuando la pantalla se construye por primera vez
-          if (!_hasLoaded && 
-              stateToRender is! ObrasFinalizadasLoaded && 
-              stateToRender is! ObrasFinalizadasLoading && 
+          if (!_hasLoaded &&
+              stateToRender is! ObrasFinalizadasLoaded &&
+              stateToRender is! ObrasFinalizadasLoading &&
               stateToRender is! ObraError) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted && !_hasLoaded) {
@@ -156,7 +159,9 @@ class _ObrasFinalizadasScreenState extends State<ObrasFinalizadasScreen> {
                   FilledButton.icon(
                     onPressed: () {
                       _hasLoaded = false;
-                      context.read<ObraBloc>().add(const LoadObrasFinalizadas());
+                      context.read<ObraBloc>().add(
+                        const LoadObrasFinalizadas(),
+                      );
                     },
                     icon: const Icon(Icons.refresh),
                     label: const Text('Reintentar'),
@@ -229,7 +234,9 @@ class _ObrasFinalizadasScreenState extends State<ObrasFinalizadasScreen> {
                                     width: 48,
                                     height: 48,
                                     decoration: BoxDecoration(
-                                      color: Colors.green.withValues(alpha: 0.2),
+                                      color: Colors.green.withValues(
+                                        alpha: 0.2,
+                                      ),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: const Icon(
@@ -248,12 +255,14 @@ class _ObrasFinalizadasScreenState extends State<ObrasFinalizadasScreen> {
                                       vertical: 4,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: _getEstadoColor(obra.estado)
-                                          .withValues(alpha: 0.2),
+                                      color: _getEstadoColor(
+                                        obra.estado,
+                                      ).withValues(alpha: 0.2),
                                       borderRadius: BorderRadius.circular(6),
                                       border: Border.all(
-                                        color: _getEstadoColor(obra.estado)
-                                            .withValues(alpha: 0.5),
+                                        color: _getEstadoColor(
+                                          obra.estado,
+                                        ).withValues(alpha: 0.5),
                                         width: 1,
                                       ),
                                     ),
@@ -285,7 +294,9 @@ class _ObrasFinalizadasScreenState extends State<ObrasFinalizadasScreen> {
                                     obra.title,
                                     style: textTheme.titleMedium?.copyWith(
                                       fontWeight: FontWeight.w600,
-                                      color: isDark ? Colors.white : Colors.black87,
+                                      color: isDark
+                                          ? Colors.white
+                                          : Colors.black87,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -295,7 +306,9 @@ class _ObrasFinalizadasScreenState extends State<ObrasFinalizadasScreen> {
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                       style: textTheme.bodySmall?.copyWith(
-                                        color: isDark ? Colors.white70 : Colors.black54,
+                                        color: isDark
+                                            ? Colors.white70
+                                            : Colors.black54,
                                       ),
                                     ),
                                   const SizedBox(height: 8),
@@ -304,7 +317,9 @@ class _ObrasFinalizadasScreenState extends State<ObrasFinalizadasScreen> {
                                       Icon(
                                         Icons.location_on,
                                         size: 16,
-                                        color: isDark ? Colors.white54 : Colors.black54,
+                                        color: isDark
+                                            ? Colors.white54
+                                            : Colors.black54,
                                       ),
                                       const SizedBox(width: 4),
                                       Expanded(
@@ -313,7 +328,9 @@ class _ObrasFinalizadasScreenState extends State<ObrasFinalizadasScreen> {
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: textTheme.bodySmall?.copyWith(
-                                            color: isDark ? Colors.white54 : Colors.black54,
+                                            color: isDark
+                                                ? Colors.white54
+                                                : Colors.black54,
                                           ),
                                         ),
                                       ),
@@ -326,13 +343,17 @@ class _ObrasFinalizadasScreenState extends State<ObrasFinalizadasScreen> {
                                         Icon(
                                           Icons.assignment,
                                           size: 16,
-                                          color: isDark ? Colors.white54 : Colors.black54,
+                                          color: isDark
+                                              ? Colors.white54
+                                              : Colors.black54,
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
                                           '${obra.tareas.length} tarea${obra.tareas.length > 1 ? 's' : ''}',
                                           style: textTheme.bodySmall?.copyWith(
-                                            color: isDark ? Colors.white54 : Colors.black54,
+                                            color: isDark
+                                                ? Colors.white54
+                                                : Colors.black54,
                                           ),
                                         ),
                                       ],
@@ -364,4 +385,3 @@ class _ObrasFinalizadasScreenState extends State<ObrasFinalizadasScreen> {
     );
   }
 }
-

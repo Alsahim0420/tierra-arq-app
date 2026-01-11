@@ -11,11 +11,7 @@ import '../../bloc/theme/theme_event.dart';
 import '../../bloc/theme/theme_state.dart';
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({
-    super.key,
-    required this.user,
-    required this.onLogout,
-  });
+  const ProfileScreen({super.key, required this.user, required this.onLogout});
 
   final core.UserEntity user;
   final VoidCallback onLogout;
@@ -34,7 +30,7 @@ class ProfileScreen extends StatelessWidget {
             letterSpacing: -0.4,
           ),
         ),
-        backgroundColor: isDark ? const Color(0xFF1B1B1B) : TierraApp.primary,
+        backgroundColor: TierraApp.getAppBarColor(isDark),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
@@ -79,7 +75,9 @@ class ProfileScreen extends StatelessWidget {
                     child: Text(
                       user.role == 'admin' ? 'Administrador' : 'Maestro',
                       style: textTheme.bodySmall?.copyWith(
-                        color: isDark ? TierraApp.primary : Colors.brown.shade700,
+                        color: isDark
+                            ? TierraApp.primary
+                            : Colors.brown.shade700,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -117,10 +115,8 @@ class ProfileScreen extends StatelessWidget {
                         value: state.theme == AppTheme.light,
                         onChanged: (value) {
                           context.read<ThemeBloc>().add(
-                                ChangeTheme(
-                                  value ? AppTheme.light : AppTheme.dark,
-                                ),
-                              );
+                            ChangeTheme(value ? AppTheme.light : AppTheme.dark),
+                          );
                         },
                         activeColor: TierraApp.primary,
                       ),
