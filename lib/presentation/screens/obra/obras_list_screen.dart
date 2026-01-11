@@ -466,7 +466,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
                   Expanded(
                     child: OutlinedButton(
                       onPressed: _clearAllFilters,
-                      child: const Text('Limpiar todo'),
+                      child: const Text('Limpiar'),
                     ),
                   ),
                   const SizedBox(width: 12),
