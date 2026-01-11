@@ -136,6 +136,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
           if (authState is AuthAuthenticated &&
               UserRoleUtils.isAdmin(authState.user)) {
             return FloatingActionButton.extended(
+              heroTag: 'fab_nuevo_maestro',
               onPressed: _navigateToRegister,
               icon: const Icon(Icons.person_add),
               label: const Text('Nuevo Maestro'),
@@ -313,7 +314,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Master',
+                              'Maestro',
                               style: textTheme.labelSmall?.copyWith(
                                 color: Colors.blue,
                                 fontWeight: FontWeight.w600,
