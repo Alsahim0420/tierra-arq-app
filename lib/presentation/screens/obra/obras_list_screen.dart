@@ -31,20 +31,21 @@ class ObrasListScreen extends StatefulWidget {
 
 class _ObrasListScreenState extends State<ObrasListScreen> {
   bool _hasLoaded = false;
-  ObraState? _lastValidState; // Mantener el último estado válido de obras activas
+  ObraState?
+  _lastValidState; // Mantener el último estado válido de obras activas
 
   @override
   void initState() {
     super.initState();
   }
-  
+
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    
+
     // Solo cargar si realmente necesitamos datos
     final currentState = context.read<ObraBloc>().state;
-    
+
     // Si el estado actual es ObraLoaded, guardarlo como válido
     if (currentState is ObraLoaded) {
       _hasLoaded = true;
@@ -96,11 +97,12 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     final isMaster = UserRoleUtils.isMaster(widget.user);
-    
+
     final roleDisplayName = UserRoleUtils.getRoleDisplayName(widget.user);
-    
+
     return Scaffold(
       appBar: AppBar(
+        centerTitle: false,
         title: Text(
           'Mis Obras',
           style: textTheme.headlineSmall?.copyWith(
@@ -108,6 +110,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
             letterSpacing: -0.4,
           ),
         ),
+
         backgroundColor: isDark ? const Color(0xFF1B1B1B) : TierraApp.primary,
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
@@ -116,7 +119,10 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
             padding: const EdgeInsets.only(right: 8),
             child: Center(
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: TierraApp.primary.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
@@ -129,7 +135,9 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
-                      isMaster ? Icons.construction : Icons.admin_panel_settings,
+                      isMaster
+                          ? Icons.construction
+                          : Icons.admin_panel_settings,
                       size: 20,
                       color: TierraApp.primary,
                     ),
@@ -160,9 +168,10 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
         builder: (context, state) {
           // Determinar qué estado renderizar
           ObraState stateToRender = state;
-          
+
           // Si el estado es de obras finalizadas u otros tipos, usar el último estado válido de activas
-          if (state is ObrasFinalizadasLoaded || state is ObrasFinalizadasLoading) {
+          if (state is ObrasFinalizadasLoaded ||
+              state is ObrasFinalizadasLoading) {
             // Si tenemos un estado válido previo, usarlo
             if (_lastValidState is ObraLoaded) {
               stateToRender = _lastValidState!;
@@ -180,9 +189,9 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
           }
 
           // Cargar obras activas cuando la pantalla se construye por primera vez
-          if (!_hasLoaded && 
-              stateToRender is! ObraLoaded && 
-              stateToRender is! ObrasActivasLoading && 
+          if (!_hasLoaded &&
+              stateToRender is! ObraLoaded &&
+              stateToRender is! ObrasActivasLoading &&
               stateToRender is! ObraError) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted && !_hasLoaded) {
@@ -248,7 +257,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      isMaster 
+                      isMaster
                           ? 'No hay obras registradas'
                           : 'No tienes obras asignadas',
                       style: textTheme.titleMedium?.copyWith(
@@ -259,7 +268,6 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
                 ),
               );
             }
-            
 
             return RefreshIndicator(
               onRefresh: () async {
@@ -300,7 +308,9 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
                                     width: 48,
                                     height: 48,
                                     decoration: BoxDecoration(
-                                      color: TierraApp.primary.withValues(alpha: 0.2),
+                                      color: TierraApp.primary.withValues(
+                                        alpha: 0.2,
+                                      ),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: const Icon(
@@ -319,12 +329,14 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
                                       vertical: 4,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: _getEstadoColor(obra.estado)
-                                          .withValues(alpha: 0.2),
+                                      color: _getEstadoColor(
+                                        obra.estado,
+                                      ).withValues(alpha: 0.2),
                                       borderRadius: BorderRadius.circular(6),
                                       border: Border.all(
-                                        color: _getEstadoColor(obra.estado)
-                                            .withValues(alpha: 0.5),
+                                        color: _getEstadoColor(
+                                          obra.estado,
+                                        ).withValues(alpha: 0.5),
                                         width: 1,
                                       ),
                                     ),
@@ -356,7 +368,9 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
                                     obra.title,
                                     style: textTheme.titleMedium?.copyWith(
                                       fontWeight: FontWeight.w600,
-                                      color: isDark ? Colors.white : Colors.black87,
+                                      color: isDark
+                                          ? Colors.white
+                                          : Colors.black87,
                                     ),
                                   ),
                                   const SizedBox(height: 4),
@@ -366,7 +380,9 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
                                       maxLines: 2,
                                       overflow: TextOverflow.ellipsis,
                                       style: textTheme.bodySmall?.copyWith(
-                                        color: isDark ? Colors.white70 : Colors.black54,
+                                        color: isDark
+                                            ? Colors.white70
+                                            : Colors.black54,
                                       ),
                                     ),
                                   const SizedBox(height: 8),
@@ -375,7 +391,9 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
                                       Icon(
                                         Icons.location_on,
                                         size: 16,
-                                        color: isDark ? Colors.white54 : Colors.black54,
+                                        color: isDark
+                                            ? Colors.white54
+                                            : Colors.black54,
                                       ),
                                       const SizedBox(width: 4),
                                       Expanded(
@@ -384,7 +402,9 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: textTheme.bodySmall?.copyWith(
-                                            color: isDark ? Colors.white54 : Colors.black54,
+                                            color: isDark
+                                                ? Colors.white54
+                                                : Colors.black54,
                                           ),
                                         ),
                                       ),
@@ -397,13 +417,17 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
                                         Icon(
                                           Icons.assignment,
                                           size: 16,
-                                          color: isDark ? Colors.white54 : Colors.black54,
+                                          color: isDark
+                                              ? Colors.white54
+                                              : Colors.black54,
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
                                           '${obra.tareas.length} tarea${obra.tareas.length > 1 ? 's' : ''}',
                                           style: textTheme.bodySmall?.copyWith(
-                                            color: isDark ? Colors.white54 : Colors.black54,
+                                            color: isDark
+                                                ? Colors.white54
+                                                : Colors.black54,
                                           ),
                                         ),
                                       ],
@@ -432,21 +456,19 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
           return const Center(child: CircularProgressIndicator());
         },
       ),
-      floatingActionButton: (widget.showFAB && UserRoleUtils.isAdmin(widget.user))
+      floatingActionButton:
+          (widget.showFAB && UserRoleUtils.isAdmin(widget.user))
           ? FloatingActionButton.extended(
-              heroTag: 'fab_nueva_obra', // Tag único para evitar conflictos de Hero
+              heroTag:
+                  'fab_nueva_obra', // Tag único para evitar conflictos de Hero
               onPressed: () async {
                 await Navigator.push<bool>(
                   context,
                   MaterialPageRoute(
                     builder: (context) => MultiBlocProvider(
                       providers: [
-                        BlocProvider.value(
-                          value: context.read<ObraBloc>(),
-                        ),
-                        BlocProvider.value(
-                          value: context.read<TareaBloc>(),
-                        ),
+                        BlocProvider.value(value: context.read<ObraBloc>()),
+                        BlocProvider.value(value: context.read<TareaBloc>()),
                       ],
                       child: const CreateObraScreen(),
                     ),
@@ -462,7 +484,3 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
     );
   }
 }
-
-
-
-
