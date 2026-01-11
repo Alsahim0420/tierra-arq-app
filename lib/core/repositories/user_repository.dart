@@ -5,9 +5,10 @@ import '../models/auth_response.dart';
 abstract class UserRepository {
   Future<AuthResponse> login(String email, String password);
   Future<List<UserEntity>> getUsers();
+  Future<List<UserEntity>> getMasterUsers({int page = 1, int limit = 10});
   Future<UserEntity?> getUserById(String id);
   Future<UserEntity?> getUserByEmail(String email);
-  Future<UserEntity> createUser(UserEntity user);
+  Future<UserEntity> createUser(UserEntity user, String password);
   Future<UserEntity> updateUser(UserEntity user);
   Future<void> deleteUser(String id);
 }

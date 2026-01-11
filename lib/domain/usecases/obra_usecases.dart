@@ -12,6 +12,17 @@ class GetObrasUseCase {
   }
 }
 
+/// Use case para obtener todas las obras finalizadas del usuario logueado
+class GetObrasFinalizadasUseCase {
+  final ObraRepository _repository;
+
+  GetObrasFinalizadasUseCase(this._repository);
+
+  Future<List<ObraEntity>> call({int page = 1, int limit = 10}) async {
+    return await _repository.getObrasFinalizadas(page: page, limit: limit);
+  }
+}
+
 // /// Use case para obtener una obra por ID
 // class GetObraByIdUseCase {
 //   final ObraRepository _repository;

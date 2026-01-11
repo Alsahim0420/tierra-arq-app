@@ -18,10 +18,15 @@ import '../../core/services/cloudinary_service.dart';
 import '../../domain/usecases/auth_usecases.dart';
 import '../../domain/usecases/obra_usecases.dart';
 import '../../domain/usecases/tarea_usecases.dart';
+import '../../domain/usecases/user/get_user_usecase.dart';
+import '../../domain/usecases/user/get_all_users_usecase.dart';
+import '../../domain/usecases/user/get_master_users_usecase.dart';
+import '../../domain/usecases/user/create_user_usecase.dart';
 import '../../presentation/bloc/auth/auth_bloc.dart';
 import '../../presentation/bloc/obra/obra_bloc.dart';
 import '../../presentation/bloc/tarea/tarea_bloc.dart';
 import '../../presentation/bloc/theme/theme_bloc.dart';
+import '../../presentation/bloc/user/user_bloc.dart';
 
 final getIt = GetIt.instance;
 
@@ -86,9 +91,24 @@ Future<void> configureDependencies() async {
       getIt<UserRepository>(),
     ),
   );
+  getIt.registerLazySingleton<GetUserUseCase>(
+    () => GetUserUseCase(getIt<UserRepository>()),
+  );
+  getIt.registerLazySingleton<GetAllUsersUseCase>(
+    () => GetAllUsersUseCase(getIt<UserRepository>()),
+  );
+  getIt.registerLazySingleton<GetMasterUsersUseCase>(
+    () => GetMasterUsersUseCase(getIt<UserRepository>()),
+  );
+  getIt.registerLazySingleton<CreateUserUseCase>(
+    () => CreateUserUseCase(getIt<UserRepository>()),
+  );
 
   // Obra
   getIt.registerLazySingleton(() => GetObrasUseCase(getIt<ObraRepository>()));
+  getIt.registerLazySingleton(
+    () => GetObrasFinalizadasUseCase(getIt<ObraRepository>()),
+  );
   getIt.registerLazySingleton(
     () => GetObrasByResponsableUseCase(getIt<ObraRepository>()),
   );
@@ -100,6 +120,9 @@ Future<void> configureDependencies() async {
   getIt.registerLazySingleton(() => GetTareasUseCase(getIt<TareaRepository>()));
   getIt.registerLazySingleton(
     () => GetTareaByIdUseCase(getIt<TareaRepository>()),
+  );
+  getIt.registerLazySingleton(
+    () => GetObraTareaByIdUseCase(getIt<TareaRepository>()),
   );
   getIt.registerLazySingleton(
     () => GetTareasByObraUseCase(getIt<TareaRepository>()),
@@ -134,6 +157,7 @@ Future<void> configureDependencies() async {
   getIt.registerFactory(
     () => ObraBloc(
       getObrasUseCase: getIt<GetObrasUseCase>(),
+      getObrasFinalizadasUseCase: getIt<GetObrasFinalizadasUseCase>(),
       getObrasByResponsableUseCase: getIt<GetObrasByResponsableUseCase>(),
       createObraUseCase: getIt<CreateObraUseCase>(),
       updateObraUseCase: getIt<UpdateObraUseCase>(),
@@ -144,6 +168,7 @@ Future<void> configureDependencies() async {
     () => TareaBloc(
       getTareasUseCase: getIt<GetTareasUseCase>(),
       getTareaByIdUseCase: getIt<GetTareaByIdUseCase>(),
+      getObraTareaByIdUseCase: getIt<GetObraTareaByIdUseCase>(),
       getTareasByObraUseCase: getIt<GetTareasByObraUseCase>(),
       getTareasByUserUseCase: getIt<GetTareasByUserUseCase>(),
       createTareaUseCase: getIt<CreateTareaUseCase>(),
@@ -155,5 +180,12 @@ Future<void> configureDependencies() async {
   );
   getIt.registerFactory(
     () => ThemeBloc(getIt<ThemeService>()),
+  );
+  getIt.registerFactory<UserBloc>(
+    () => UserBloc(
+      getIt<GetUserUseCase>(),
+      getIt<GetAllUsersUseCase>(),
+      getIt<CreateUserUseCase>(),
+    ),
   );
 }

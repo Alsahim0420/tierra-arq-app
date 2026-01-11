@@ -11,6 +11,7 @@ class TareaEntity {
     required this.duration,
     this.assignedTo,
     this.observation,
+    this.obraTareaId,
   });
 
   final String id;
@@ -21,5 +22,6 @@ class TareaEntity {
   final int duration;
   final UserEntity? assignedTo;
   final String? observation;
+  final String? obraTareaId; // ID de la relación obra-tarea (obra_tarea_id del API)
 }
 

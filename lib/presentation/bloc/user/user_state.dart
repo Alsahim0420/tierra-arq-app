@@ -34,6 +34,15 @@ class UsersLoaded extends UserState {
   List<Object?> get props => [users];
 }
 
+class UserCreated extends UserState {
+  final UserEntity user;
+
+  const UserCreated(this.user);
+
+  @override
+  List<Object?> get props => [user];
+}
+
 class UserError extends UserState {
   final String message;
 

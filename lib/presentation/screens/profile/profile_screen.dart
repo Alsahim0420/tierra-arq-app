@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/entities/user_entity.dart' as core;
@@ -28,10 +30,12 @@ class ProfileScreen extends StatelessWidget {
         title: Text(
           'Perfil',
           style: textTheme.headlineSmall?.copyWith(
-            color: isDark ? Colors.white : Colors.black87,
+            color: Colors.white,
             letterSpacing: -0.4,
           ),
         ),
+        backgroundColor: isDark ? const Color(0xFF1B1B1B) : TierraApp.primary,
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -59,7 +63,7 @@ class ProfileScreen extends StatelessWidget {
                     user.fullName,
                     style: textTheme.headlineSmall?.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white : Colors.black87,
+                      color: isDark ? null : Colors.black87,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -75,7 +79,7 @@ class ProfileScreen extends StatelessWidget {
                     child: Text(
                       user.role == 'admin' ? 'Administrador' : 'Maestro',
                       style: textTheme.bodySmall?.copyWith(
-                        color: isDark ? TierraApp.primary : const Color(0xFF8B5A3C),
+                        color: isDark ? TierraApp.primary : Colors.brown.shade700,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -94,18 +98,19 @@ class ProfileScreen extends StatelessWidget {
                         state.theme == AppTheme.light
                             ? Icons.light_mode
                             : Icons.dark_mode,
-                        color: isDark ? Colors.white70 : Colors.black54,
+                        color: isDark ? Colors.white70 : Colors.black87,
                       ),
                       title: Text(
                         'Tema',
                         style: textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.w500,
+                          color: isDark ? null : Colors.black87,
                         ),
                       ),
                       subtitle: Text(
                         state.theme == AppTheme.light ? 'Claro' : 'Oscuro',
                         style: textTheme.bodySmall?.copyWith(
-                          color: isDark ? Colors.white54 : Colors.black54,
+                          color: isDark ? Colors.white54 : Colors.black87,
                         ),
                       ),
                       trailing: Switch(

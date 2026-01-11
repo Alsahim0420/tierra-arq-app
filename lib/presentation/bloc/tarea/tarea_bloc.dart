@@ -6,6 +6,7 @@ import 'tarea_state.dart';
 class TareaBloc extends Bloc<TareaEvent, TareaState> {
   final GetTareasUseCase getTareasUseCase;
   final GetTareaByIdUseCase getTareaByIdUseCase;
+  final GetObraTareaByIdUseCase getObraTareaByIdUseCase;
   final GetTareasByObraUseCase getTareasByObraUseCase;
   final GetTareasByUserUseCase getTareasByUserUseCase;
   final CreateTareaUseCase createTareaUseCase;
@@ -17,6 +18,7 @@ class TareaBloc extends Bloc<TareaEvent, TareaState> {
   TareaBloc({
     required this.getTareasUseCase,
     required this.getTareaByIdUseCase,
+    required this.getObraTareaByIdUseCase,
     required this.getTareasByObraUseCase,
     required this.getTareasByUserUseCase,
     required this.createTareaUseCase,
@@ -27,6 +29,7 @@ class TareaBloc extends Bloc<TareaEvent, TareaState> {
   }) : super(const TareaInitial()) {
     on<LoadTareas>(_onLoadTareas);
     on<LoadTareaById>(_onLoadTareaById);
+    on<LoadObraTareaById>(_onLoadObraTareaById);
     on<LoadTareasByObra>(_onLoadTareasByObra);
     on<LoadTareasByUser>(_onLoadTareasByUser);
     on<CreateTarea>(_onCreateTarea);
@@ -44,7 +47,7 @@ class TareaBloc extends Bloc<TareaEvent, TareaState> {
   ) async {
     emit(const TareaLoading());
     try {
-      final tareas = await getTareasUseCase();
+      final tareas = await getTareasUseCase(page: event.page, limit: event.limit);
       emit(TareaLoaded(tareas: tareas));
     } catch (e) {
       emit(TareaError('Error al cargar tareas: $e'));
@@ -73,6 +76,28 @@ class TareaBloc extends Bloc<TareaEvent, TareaState> {
       }
     } catch (e) {
       emit(TareaError('Error al cargar tarea: $e'));
+    }
+  }
+
+  Future<void> _onLoadObraTareaById(
+    LoadObraTareaById event,
+    Emitter<TareaState> emit,
+  ) async {
+    emit(const TareaLoading());
+    try {
+      final obraTarea = await getObraTareaByIdUseCase(event.obraTareaId);
+      final currentState = state;
+      if (currentState is TareaLoaded) {
+        emit(TareaLoaded(
+          tareas: currentState.tareas,
+          selectedTarea: currentState.selectedTarea,
+          selectedObraTarea: obraTarea,
+        ));
+      } else {
+        emit(TareaLoaded(tareas: [], selectedObraTarea: obraTarea));
+      }
+    } catch (e) {
+      emit(TareaError('Error al cargar obra-tarea: $e'));
     }
   }
 
@@ -142,7 +167,7 @@ class TareaBloc extends Bloc<TareaEvent, TareaState> {
               : currentState.selectedTarea,
         ));
       } else {
-        // Si no hay estado cargado, crear uno nuevo con la tarea actualizada
+      // Si no hay estado cargado, crear uno nuevo con la tarea actualizada
         emit(TareaLoaded(tareas: [tarea], selectedTarea: tarea));
       }
     } catch (e) {

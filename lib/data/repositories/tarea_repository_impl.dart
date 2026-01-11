@@ -9,13 +9,18 @@ class TareaRepositoryImpl implements TareaRepository {
   TareaRepositoryImpl(this._dataSource);
 
   @override
-  Future<List<TareaEntity>> getTareas() async {
-    return await _dataSource.getTareas();
+  Future<List<TareaEntity>> getTareas({int page = 1, int limit = 10}) async {
+    return await _dataSource.getTareas(page: page, limit: limit);
   }
 
   @override
   Future<TareaEntity?> getTareaById(String id) async {
     return await _dataSource.getTareaById(id);
+  }
+
+  @override
+  Future<Map<String, dynamic>> getObraTareaById(String obraTareaId) async {
+    return await _dataSource.getObraTareaById(obraTareaId);
   }
 
   @override

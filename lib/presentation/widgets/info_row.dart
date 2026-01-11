@@ -21,11 +21,7 @@ class InfoRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
-          Icon(
-            icon,
-            size: 20,
-            color: isDark ? Colors.white54 : Colors.black54,
-          ),
+          Icon(icon, size: 20, color: isDark ? Colors.white54 : Colors.black54),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -42,7 +38,7 @@ class InfoRow extends StatelessWidget {
                   value,
                   style: textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w500,
-                    color: isDark ? Colors.white : Colors.black87,
+                    color: isDark ? null : Colors.black87,
                   ),
                 ),
               ],

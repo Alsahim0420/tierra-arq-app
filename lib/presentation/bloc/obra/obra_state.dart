@@ -16,6 +16,16 @@ class ObraLoading extends ObraState {
   const ObraLoading();
 }
 
+/// Estado de loading específico para obras activas
+class ObrasActivasLoading extends ObraState {
+  const ObrasActivasLoading();
+}
+
+/// Estado de loading específico para obras finalizadas
+class ObrasFinalizadasLoading extends ObraState {
+  const ObrasFinalizadasLoading();
+}
+
 class ObraLoaded extends ObraState {
   final List<ObraEntity> obras;
   final ObraEntity? selectedObra;
@@ -36,5 +46,14 @@ class ObraError extends ObraState {
 
   @override
   List<Object?> get props => [message];
+}
+
+class ObrasFinalizadasLoaded extends ObraState {
+  final List<ObraEntity> obras;
+
+  const ObrasFinalizadasLoaded({required this.obras});
+
+  @override
+  List<Object?> get props => [obras];
 }
 

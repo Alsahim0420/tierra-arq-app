@@ -20,6 +20,11 @@ class UserRepositoryImpl implements UserRepository {
   }
 
   @override
+  Future<List<UserEntity>> getMasterUsers({int page = 1, int limit = 10}) async {
+    return await dataSource.getMasterUsers(page: page, limit: limit);
+  }
+
+  @override
   Future<UserEntity?> getUserById(String id) async {
     return await dataSource.getUserById(id);
   }
@@ -30,8 +35,8 @@ class UserRepositoryImpl implements UserRepository {
   }
 
   @override
-  Future<UserEntity> createUser(UserEntity user) async {
-    return await dataSource.createUser(user);
+  Future<UserEntity> createUser(UserEntity user, String password) async {
+    return await dataSource.createUser(user, password);
   }
 
   @override

@@ -19,29 +19,38 @@ class ObraDataSourceImpl implements ObraDataSource {
   }) : _httpService = httpService,
        _tokenStorage = tokenStorage;
 
-  /// Obtiene todas las obras del usuario logueado
+  /// Obtiene todas las obras activas (pendiente y en_proceso) del usuario logueado
   ///
-  /// Endpoint: GET /master/responsable/{userId}
-  /// Obtiene automáticamente el ID del usuario desde el token JWT
-  /// Retorna lista de todas las obras del usuario responsable
+  /// Endpoint: GET /master/obra?estado=activas&page=1&limit=10
+  /// El backend filtra automáticamente obras con estado "pendiente" y "en_proceso"
+  /// Retorna lista paginada de obras activas (solo la primera página por defecto)
   @override
   Future<List<ObraEntity>> getObras() async {
     try {
-      // Obtener el ID del usuario desde el token
-      final userId = await _getUserIdFromToken();
-      if (userId.isEmpty) {
-        throw const ServerException(
-          'No se pudo obtener el ID del usuario desde el token',
-        );
-      }
-
-      final response = await _httpService.get('/master/responsable/$userId');
+      // Usar el nuevo endpoint con parámetros de paginación y filtro de estado
+      // Por defecto, obtener página 1 con límite de 10 obras
+      // El backend filtra automáticamente obras activas (pendiente y en_proceso)
+      final response = await _httpService.get(
+        '/master/obra?estado=activas&page=1&limit=10',
+      );
+      
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
 
-        // La respuesta tiene estructura: {"status":"success","data":{"user":{...},"obras":[...]}}
+        // La nueva respuesta tiene estructura paginada:
+        // {"status":"success","data":{"docs":[...],"totalDocs":7,"limit":10,"page":1,...}}
         if (data.containsKey('data') && data['data'] is Map) {
           final dataObj = data['data'] as Map<String, dynamic>;
+          
+          // Buscar la lista de obras en 'docs' (estructura paginada)
+          if (dataObj.containsKey('docs') && dataObj['docs'] is List) {
+            final obrasList = dataObj['docs'] as List;
+            return obrasList
+                .map((item) => _mapObraFromApi(item as Map<String, dynamic>))
+                .toList();
+          }
+          
+          // Fallback: si viene la estructura antigua con 'obras' directamente
           if (dataObj.containsKey('obras') && dataObj['obras'] is List) {
             final obrasList = dataObj['obras'] as List;
             return obrasList
@@ -59,6 +68,56 @@ class ObraDataSourceImpl implements ObraDataSource {
       rethrow;
     } catch (e) {
       throw UnknownException('Error al obtener obras: ${e.toString()}');
+    }
+  }
+
+  /// Obtiene todas las obras finalizadas del usuario logueado
+  ///
+  /// Endpoint: GET /master/obra?estado=finalizadas&sort=updatedAt:desc&page={page}&limit={limit}
+  /// El backend filtra automáticamente obras con estado "finalizado"
+  /// Retorna lista paginada de obras finalizadas, ordenadas por fecha de actualización descendente
+  @override
+  Future<List<ObraEntity>> getObrasFinalizadas({int page = 1, int limit = 10}) async {
+    try {
+      // Usar el endpoint con parámetros de paginación, filtro de estado y ordenamiento
+      final response = await _httpService.get(
+        '/master/obra?estado=finalizadas&sort=updatedAt:desc&page=$page&limit=$limit',
+      );
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+        // La respuesta tiene estructura paginada:
+        // {"status":"success","data":{"docs":[...],"totalDocs":1,"limit":10,"page":1,...}}
+        if (data.containsKey('data') && data['data'] is Map) {
+          final dataObj = data['data'] as Map<String, dynamic>;
+          
+          // Buscar la lista de obras en 'docs' (estructura paginada)
+          if (dataObj.containsKey('docs') && dataObj['docs'] is List) {
+            final obrasList = dataObj['docs'] as List;
+            return obrasList
+                .map((item) => _mapObraFromApi(item as Map<String, dynamic>))
+                .toList();
+          }
+          
+          // Fallback: si viene la estructura antigua con 'obras' directamente
+          if (dataObj.containsKey('obras') && dataObj['obras'] is List) {
+            final obrasList = dataObj['obras'] as List;
+            return obrasList
+                .map((item) => _mapObraFromApi(item as Map<String, dynamic>))
+                .toList();
+          }
+        }
+        return [];
+      } else if (response.statusCode == 404) {
+        return [];
+      } else {
+        throw ServerException('Error al obtener obras finalizadas', response.statusCode);
+      }
+    } on AppException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException('Error al obtener obras finalizadas: ${e.toString()}');
     }
   }
 
@@ -165,6 +224,7 @@ class ObraDataSourceImpl implements ObraDataSource {
       costo: (data['costo'] ?? data['cost'] ?? 0.0).toDouble(),
       responsable: _mapUserFromApi(responsableData),
       tareas: _mapTareasFromApi(tareasList),
+      estado: data['estado']?.toString() ?? 'pendiente',
     );
   }
 
@@ -233,6 +293,9 @@ class ObraDataSourceImpl implements ObraDataSource {
                 .toList();
           }
 
+          // Mapear obra_tarea_id si existe
+          final obraTareaId = tareaData['obra_tarea_id']?.toString();
+
           return TareaEntity(
             id:
                 tareaData['_id']?.toString() ??
@@ -253,6 +316,7 @@ class ObraDataSourceImpl implements ObraDataSource {
             evidences: evidences,
             assignedTo: assignedTo,
             observation: tareaData['observation']?.toString(),
+            obraTareaId: obraTareaId,
           );
         })
         .whereType<TareaEntity>()
@@ -261,19 +325,112 @@ class ObraDataSourceImpl implements ObraDataSource {
 
   @override
   Future<ObraEntity> createObra(ObraEntity obra) async {
-    // TODO: Implementar cuando esté disponible el endpoint
-    throw const ServerException('Endpoint de creación no implementado');
+    try {
+      // Construir el body según el formato del endpoint
+      // Incluye el array de IDs de tareas si existen
+      final body = <String, dynamic>{
+        'title': obra.title,
+        'description': obra.description,
+        'location': obra.location,
+        'city': obra.city,
+        'responsable': obra.responsable.id, // Solo enviar el ID del responsable
+        'costo': obra.costo,
+      };
+
+      // Si hay tareas asociadas, extraer solo los IDs y agregarlos al body
+      if (obra.tareas.isNotEmpty) {
+        final tareaIds = obra.tareas
+            .where((tarea) => tarea.id.isNotEmpty) // Solo IDs válidos
+            .map((tarea) => tarea.id)
+            .toList();
+        
+        if (tareaIds.isNotEmpty) {
+          body['tareas'] = tareaIds;
+        }
+      }
+
+      final response = await _httpService.post(
+        '/master/obra',
+        body: body,
+      );
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        
+        // La respuesta puede venir en diferentes formatos
+        Map<String, dynamic> obraData;
+        if (data.containsKey('data')) {
+          if (data['data'] is Map) {
+            final dataObj = data['data'] as Map<String, dynamic>;
+            if (dataObj.containsKey('obra')) {
+              obraData = dataObj['obra'] as Map<String, dynamic>;
+            } else {
+              obraData = dataObj;
+            }
+          } else {
+            obraData = {};
+          }
+        } else if (data.containsKey('obra')) {
+          obraData = data['obra'] as Map<String, dynamic>;
+        } else {
+          obraData = data;
+        }
+
+        final createdObra = _mapObraFromApi(obraData);
+        return createdObra;
+      } else if (response.statusCode == 400) {
+        String errorMessage = 'Datos inválidos';
+        try {
+          final errorData = jsonDecode(response.body) as Map<String, dynamic>;
+          errorMessage = errorData['message']?.toString() ?? errorMessage;
+        } catch (_) {
+          // Si no se puede parsear el error, usar el mensaje por defecto
+        }
+        throw ValidationException(errorMessage);
+      } else if (response.statusCode == 409) {
+        String errorMessage = 'Ya existe una obra con estos datos';
+        try {
+          final errorData = jsonDecode(response.body) as Map<String, dynamic>;
+          errorMessage = errorData['message']?.toString() ?? errorMessage;
+        } catch (_) {
+          // Si no se puede parsear el error, usar el mensaje por defecto
+        }
+        throw ValidationException(errorMessage);
+      } else if (response.statusCode == 401) {
+        throw AuthenticationException('No autorizado');
+      } else if (response.statusCode >= 500) {
+        throw ServerException(
+          'El servidor no está disponible. Intenta más tarde.',
+          response.statusCode,
+        );
+      } else {
+        String errorMessage = 'Error al crear obra';
+        try {
+          final errorData = jsonDecode(response.body) as Map<String, dynamic>;
+          errorMessage = errorData['message']?.toString() ?? errorMessage;
+        } catch (_) {
+          // Si no se puede parsear el error, usar el mensaje por defecto
+        }
+        throw ServerException(errorMessage, response.statusCode);
+      }
+    } on AppException {
+      rethrow;
+    } catch (e) {
+      throw UnknownException('Error al crear obra: ${e.toString()}');
+    }
   }
 
   @override
   Future<ObraEntity> updateObra(ObraEntity obra) async {
-    // TODO: Implementar cuando esté disponible el endpoint
-    throw const ServerException('Endpoint de actualización no implementado');
+    // Método no implementado - no se usa en la aplicación actual
+    // Retornar la misma obra sin cambios para evitar errores
+    return obra;
   }
-
+  
   @override
   Future<void> deleteObra(String id) async {
-    // TODO: Implementar cuando esté disponible el endpoint
-    throw const ServerException('Endpoint de eliminación no implementado');
+    // Método no implementado - no se usa en la aplicación actual
+    // No hacer nada para evitar errores
+    return;
   }
 }

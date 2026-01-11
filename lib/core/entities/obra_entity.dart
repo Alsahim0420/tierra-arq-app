@@ -12,6 +12,7 @@ class ObraEntity {
     required this.tareas,
     required this.responsable,
     required this.costo,
+    this.estado = 'pendiente', // Estado de la obra: pendiente, en_proceso, finalizado
   });
 
   final String id;
@@ -22,5 +23,6 @@ class ObraEntity {
   final List<TareaEntity> tareas;
   final UserEntity responsable;
   final double costo;
+  final String estado; // Estado de la obra: pendiente, en_proceso, finalizado
 }
 
