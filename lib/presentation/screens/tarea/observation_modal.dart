@@ -1,3 +1,5 @@
+// ignore_for_file: unused_local_variable, use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/entities/tarea_entity.dart';
@@ -91,9 +93,9 @@ class _ObservationModalState extends State<ObservationModal> {
         duration: latestTarea.duration,
         assignedTo: latestTarea.assignedTo,
         observation: observationValue,
+        obraTareaId: latestTarea.obraTareaId, // Mantener obraTareaId original
       );
 
-      print('🔵 ObservationModal - Guardando observación: ${observationValue != null ? '"$observationValue"' : 'null'}');
 
       tareaBloc.add(
         UpdateTarea(updatedTarea, obraId),
@@ -104,7 +106,6 @@ class _ObservationModalState extends State<ObservationModal> {
       // Vamos a esperar de forma más simple: esperar a que pase por Loading y luego a Loaded o Error
       try {
         final initialState = tareaBloc.state;
-        print('🔵 ObservationModal - Estado inicial del BLoC: ${initialState.runtimeType}');
         
         // Esperar a que el estado cambie de Loading a Loaded o Error
         // Usamos skip(1) para saltar el estado inicial y esperar el siguiente
@@ -113,19 +114,14 @@ class _ObservationModalState extends State<ObservationModal> {
             .where((state) => state is! TareaLoading) // Esperar que no esté en Loading
             .timeout(const Duration(seconds: 15))
             .first;
-        print('🔵 ObservationModal - Observación guardada correctamente');
       } catch (e) {
-        print('🔵 ObservationModal - Timeout o error esperando observación: $e');
         // Verificar el estado actual
         final currentState = tareaBloc.state;
-        print('🔵 ObservationModal - Estado actual después del timeout: ${currentState.runtimeType}');
         if (currentState is TareaError) {
-          print('🔵 ObservationModal - Error en el estado: ${currentState.message}');
           throw Exception(currentState.message);
         }
         // Si está en TareaLoaded, asumimos que se completó correctamente
         if (currentState is TareaLoaded) {
-          print('🔵 ObservationModal - Estado es TareaLoaded, asumiendo éxito');
         }
       }
 
@@ -142,8 +138,7 @@ class _ObservationModalState extends State<ObservationModal> {
           ),
         );
       }
-    } catch (e) {
-      print('🔵 ObservationModal - Error al guardar observación: $e');
+    } catch (e) { 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

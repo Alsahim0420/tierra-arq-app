@@ -12,6 +12,10 @@ class LoadObras extends ObraEvent {
   const LoadObras();
 }
 
+class LoadObrasFinalizadas extends ObraEvent {
+  const LoadObrasFinalizadas();
+}
+
 class LoadObraById extends ObraEvent {
   final String id;
 

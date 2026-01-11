@@ -4,61 +4,36 @@ import '../../../core/entities/user_entity.dart' as core;
 import '../../bloc/obra/obra_bloc.dart';
 import '../../bloc/obra/obra_event.dart';
 import '../../bloc/obra/obra_state.dart';
-import '../../bloc/tarea/tarea_bloc.dart';
 import '../../app/app.dart';
-import '../../utils/user_role_utils.dart';
-// COMENTADO: Imports de navegación movidos al BottomNavigationBar
-// import '../profile/profile_screen.dart';
-// import '../user/users_list_screen.dart';
 import 'obra_detail_screen.dart';
-import 'create_obra_screen.dart';
 
-class ObrasListScreen extends StatefulWidget {
-  const ObrasListScreen({
+class ObrasFinalizadasScreen extends StatefulWidget {
+  const ObrasFinalizadasScreen({
     super.key,
     required this.user,
     required this.onLogout,
-    this.showFAB = false,
   });
 
   final core.UserEntity user;
   final VoidCallback onLogout;
-  final bool showFAB; // Control para mostrar el FAB "Nueva Obra"
 
   @override
-  State<ObrasListScreen> createState() => _ObrasListScreenState();
+  State<ObrasFinalizadasScreen> createState() => _ObrasFinalizadasScreenState();
 }
 
-class _ObrasListScreenState extends State<ObrasListScreen> {
+class _ObrasFinalizadasScreenState extends State<ObrasFinalizadasScreen> {
   bool _hasLoaded = false;
-  ObraState? _lastValidState; // Mantener el último estado válido de obras activas
+  ObraState? _lastValidState; // Mantener el último estado válido de obras finalizadas
 
   @override
   void initState() {
     super.initState();
   }
-  
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    
-    // Solo cargar si realmente necesitamos datos
-    final currentState = context.read<ObraBloc>().state;
-    
-    // Si el estado actual es ObraLoaded, guardarlo como válido
-    if (currentState is ObraLoaded) {
-      _hasLoaded = true;
-      _lastValidState = currentState;
-    } else if (currentState is ObraInitial && !_hasLoaded) {
-      // Solo cargar si es el estado inicial y no hemos cargado aún
-      _loadObrasActivas();
-    }
-  }
 
-  void _loadObrasActivas() {
+  void _loadObrasFinalizadas() {
     if (!_hasLoaded && mounted) {
-      // NO marcar _hasLoaded aquí - solo se marca cuando se recibe ObraLoaded exitosamente
-      context.read<ObraBloc>().add(const LoadObras());
+      _hasLoaded = true;
+      context.read<ObraBloc>().add(const LoadObrasFinalizadas());
     }
   }
 
@@ -95,14 +70,10 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
     final textTheme = Theme.of(context).textTheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final isMaster = UserRoleUtils.isMaster(widget.user);
-    
-    final roleDisplayName = UserRoleUtils.getRoleDisplayName(widget.user);
-    
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          'Mis Obras',
+          'Obras Finalizadas',
           style: textTheme.headlineSmall?.copyWith(
             color: Colors.white,
             letterSpacing: -0.4,
@@ -110,49 +81,11 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
         ),
         backgroundColor: isDark ? const Color(0xFF1B1B1B) : TierraApp.primary,
         iconTheme: const IconThemeData(color: Colors.white),
-        actions: [
-          // Badge del rol a la derecha (más grande, al menos el doble)
-          Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Center(
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                decoration: BoxDecoration(
-                  color: TierraApp.primary.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: TierraApp.primary.withValues(alpha: 0.5),
-                    width: 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      isMaster ? Icons.construction : Icons.admin_panel_settings,
-                      size: 20,
-                      color: TierraApp.primary,
-                    ),
-                    const SizedBox(width: 6),
-                    Text(
-                      roleDisplayName,
-                      style: textTheme.bodyMedium?.copyWith(
-                        color: TierraApp.primary,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
       ),
       body: BlocConsumer<ObraBloc, ObraState>(
         listener: (context, state) {
-          // Guardar el estado válido de obras activas
-          if (state is ObraLoaded) {
+          // Guardar el estado válido de obras finalizadas
+          if (state is ObrasFinalizadasLoaded) {
             _hasLoaded = true;
             _lastValidState = state;
           }
@@ -161,17 +94,17 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
           // Determinar qué estado renderizar
           ObraState stateToRender = state;
           
-          // Si el estado es de obras finalizadas u otros tipos, usar el último estado válido de activas
-          if (state is ObrasFinalizadasLoaded || state is ObrasFinalizadasLoading) {
+          // Si el estado es de obras activas u otro tipo, usar el último estado válido de finalizadas
+          if (state is ObrasActivasLoading || state is ObraLoaded || state is ObraInitial) {
             // Si tenemos un estado válido previo, usarlo
-            if (_lastValidState is ObraLoaded) {
+            if (_lastValidState is ObrasFinalizadasLoaded) {
               stateToRender = _lastValidState!;
             } else {
-              // Si no hay estado previo, cargar obras activas
+              // Si no hay estado previo, cargar obras finalizadas
               if (!_hasLoaded) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (mounted && !_hasLoaded) {
-                    _loadObrasActivas();
+                    _loadObrasFinalizadas();
                   }
                 });
               }
@@ -179,21 +112,21 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
             }
           }
 
-          // Cargar obras activas cuando la pantalla se construye por primera vez
+          // Cargar obras finalizadas cuando la pantalla se construye por primera vez
           if (!_hasLoaded && 
-              stateToRender is! ObraLoaded && 
-              stateToRender is! ObrasActivasLoading && 
+              stateToRender is! ObrasFinalizadasLoaded && 
+              stateToRender is! ObrasFinalizadasLoading && 
               stateToRender is! ObraError) {
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (mounted && !_hasLoaded) {
-                _loadObrasActivas();
+                _loadObrasFinalizadas();
               }
             });
             return const Center(child: CircularProgressIndicator());
           }
 
-          // Mostrar loading solo para obras activas
-          if (stateToRender is ObrasActivasLoading) {
+          // Mostrar loading solo para obras finalizadas
+          if (stateToRender is ObrasFinalizadasLoading) {
             return const Center(child: CircularProgressIndicator());
           }
 
@@ -202,7 +135,6 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
           }
 
           if (stateToRender is ObraError) {
-            final errorState = stateToRender; // Cast para acceso directo
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -214,7 +146,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    errorState.message,
+                    stateToRender.message,
                     style: textTheme.bodyLarge?.copyWith(
                       color: isDark ? Colors.white70 : Colors.black54,
                     ),
@@ -224,7 +156,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
                   FilledButton.icon(
                     onPressed: () {
                       _hasLoaded = false;
-                      context.read<ObraBloc>().add(const LoadObras());
+                      context.read<ObraBloc>().add(const LoadObrasFinalizadas());
                     },
                     icon: const Icon(Icons.refresh),
                     label: const Text('Reintentar'),
@@ -234,23 +166,21 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
             );
           }
 
-          if (stateToRender is ObraLoaded) {
-            final obrasLoaded = stateToRender; // Cast para acceso directo
-            if (obrasLoaded.obras.isEmpty) {
+          if (stateToRender is ObrasFinalizadasLoaded) {
+            final obrasFinalizadas = stateToRender;
+            if (obrasFinalizadas.obras.isEmpty) {
               return Center(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
-                      Icons.construction_outlined,
+                      Icons.check_circle_outline,
                       size: 64,
                       color: isDark ? Colors.white30 : Colors.black26,
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      isMaster 
-                          ? 'No hay obras registradas'
-                          : 'No tienes obras asignadas',
+                      'No hay obras finalizadas',
                       style: textTheme.titleMedium?.copyWith(
                         color: isDark ? Colors.white70 : Colors.black54,
                       ),
@@ -259,19 +189,18 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
                 ),
               );
             }
-            
 
             return RefreshIndicator(
               onRefresh: () async {
                 _hasLoaded = false;
-                context.read<ObraBloc>().add(const LoadObras());
+                context.read<ObraBloc>().add(const LoadObrasFinalizadas());
                 await Future.delayed(const Duration(milliseconds: 500));
               },
               child: ListView.builder(
                 padding: const EdgeInsets.all(16),
-                itemCount: obrasLoaded.obras.length,
+                itemCount: obrasFinalizadas.obras.length,
                 itemBuilder: (context, index) {
-                  final obra = obrasLoaded.obras[index];
+                  final obra = obrasFinalizadas.obras[index];
                   return Card(
                     margin: const EdgeInsets.only(bottom: 12),
                     child: InkWell(
@@ -300,12 +229,12 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
                                     width: 48,
                                     height: 48,
                                     decoration: BoxDecoration(
-                                      color: TierraApp.primary.withValues(alpha: 0.2),
+                                      color: Colors.green.withValues(alpha: 0.2),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: const Icon(
-                                      Icons.construction,
-                                      color: TierraApp.primary,
+                                      Icons.check_circle,
+                                      color: Colors.green,
                                       size: 24,
                                     ),
                                   ),
@@ -428,41 +357,11 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
             );
           }
 
-          // Estado inicial o desconocido: mostrar loading
+          // Estado inicial: mostrar loading mientras se carga
           return const Center(child: CircularProgressIndicator());
         },
       ),
-      floatingActionButton: (widget.showFAB && UserRoleUtils.isAdmin(widget.user))
-          ? FloatingActionButton.extended(
-              heroTag: 'fab_nueva_obra', // Tag único para evitar conflictos de Hero
-              onPressed: () async {
-                await Navigator.push<bool>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => MultiBlocProvider(
-                      providers: [
-                        BlocProvider.value(
-                          value: context.read<ObraBloc>(),
-                        ),
-                        BlocProvider.value(
-                          value: context.read<TareaBloc>(),
-                        ),
-                      ],
-                      child: const CreateObraScreen(),
-                    ),
-                  ),
-                );
-                // La obra ya se refrescó en la pantalla
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('Nueva Obra'),
-              backgroundColor: TierraApp.primary,
-            )
-          : null,
     );
   }
 }
-
-
-
 

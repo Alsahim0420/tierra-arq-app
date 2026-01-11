@@ -7,8 +7,8 @@ class GetTareasUseCase {
 
   GetTareasUseCase(this._repository);
 
-  Future<List<TareaEntity>> call() async {
-    return await _repository.getTareas();
+  Future<List<TareaEntity>> call({int page = 1, int limit = 10}) async {
+    return await _repository.getTareas(page: page, limit: limit);
   }
 }
 
@@ -20,6 +20,17 @@ class GetTareaByIdUseCase {
 
   Future<TareaEntity?> call(String id) async {
     return await _repository.getTareaById(id);
+  }
+}
+
+/// Use case para obtener los detalles de una obra-tarea por ID
+class GetObraTareaByIdUseCase {
+  final TareaRepository _repository;
+
+  GetObraTareaByIdUseCase(this._repository);
+
+  Future<Map<String, dynamic>> call(String obraTareaId) async {
+    return await _repository.getObraTareaById(obraTareaId);
   }
 }
 

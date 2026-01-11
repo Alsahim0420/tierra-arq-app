@@ -8,6 +8,7 @@ import '../bloc/tarea/tarea_bloc.dart';
 import '../bloc/theme/theme_bloc.dart';
 import '../bloc/theme/theme_event.dart';
 import '../bloc/theme/theme_state.dart';
+import '../bloc/user/user_bloc.dart';
 import '../screens/auth/auth_wrapper.dart';
 
 class TierraApp extends StatelessWidget {
@@ -101,6 +102,7 @@ class TierraApp extends StatelessWidget {
         ),
         BlocProvider(create: (_) => di.getIt<ObraBloc>()),
         BlocProvider(create: (_) => di.getIt<TareaBloc>()),
+        BlocProvider(create: (_) => di.getIt<UserBloc>()),
       ],
       child: BlocBuilder<ThemeBloc, ThemeState>(
         builder: (context, themeState) {

@@ -2,8 +2,9 @@ import '../entities/tarea_entity.dart';
 
 /// Datasource abstracto para tareas
 abstract class TareaDataSource {
-  Future<List<TareaEntity>> getTareas();
+  Future<List<TareaEntity>> getTareas({int page = 1, int limit = 10});
   Future<TareaEntity?> getTareaById(String id);
+  Future<Map<String, dynamic>> getObraTareaById(String obraTareaId);
   Future<List<TareaEntity>> getTareasByObra(String obraId);
   Future<List<TareaEntity>> getTareasByUser(String userId);
   Future<TareaEntity> createTarea(TareaEntity tarea, String obraId);

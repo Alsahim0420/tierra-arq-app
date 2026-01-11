@@ -5,7 +5,7 @@ import '../../bloc/auth/auth_event.dart';
 import '../../bloc/auth/auth_state.dart';
 import '../../bloc/obra/obra_bloc.dart';
 import '../../bloc/obra/obra_event.dart';
-import '../obra/obras_list_screen.dart';
+import '../main/main_screen.dart';
 import 'login_screen.dart';
 
 class AuthWrapper extends StatelessWidget {
@@ -22,7 +22,7 @@ class AuthWrapper extends StatelessWidget {
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
           if (state is AuthAuthenticated) {
-            return ObrasListScreen(
+            return MainScreen(
               user: state.user,
               onLogout: () {
                 context.read<AuthBloc>().add(const LogoutRequested());

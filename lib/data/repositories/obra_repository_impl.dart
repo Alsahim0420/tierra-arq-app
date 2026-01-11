@@ -13,6 +13,11 @@ class ObraRepositoryImpl implements ObraRepository {
     return await _dataSource.getObras();
   }
 
+  @override
+  Future<List<ObraEntity>> getObrasFinalizadas({int page = 1, int limit = 10}) async {
+    return await _dataSource.getObrasFinalizadas(page: page, limit: limit);
+  }
+
   // @override
   // Future<ObraEntity?> getObraById(String id) async {
   //   return await _dataSource.getObraById(id);

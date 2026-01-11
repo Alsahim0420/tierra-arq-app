@@ -1,5 +1,7 @@
 /// Excepciones personalizadas para la aplicación
 
+// ignore_for_file: dangling_library_doc_comments
+
 /// Excepción base para errores de la aplicación
 abstract class AppException implements Exception {
   final String message;

@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
+
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -15,6 +17,7 @@ import '../../app/app.dart';
 import '../../utils/format_utils.dart';
 import '../../widgets/tarea_info_row.dart';
 import '../../widgets/evidences_gallery.dart';
+import '../../../core/widgets/custom_snackbar.dart';
 import '../../../core/injection/injection_container.dart' as di;
 import 'observation_modal.dart';
 
@@ -22,11 +25,15 @@ class TareaDetailModal extends StatefulWidget {
   const TareaDetailModal({
     super.key,
     required this.tarea,
-    required this.obraId,
+    this.obraId,
+    this.isAdmin = false,
+    this.isMaster = false,
   });
 
   final TareaEntity tarea;
-  final String obraId;
+  final String? obraId;
+  final bool isAdmin;
+  final bool isMaster;
 
   @override
   State<TareaDetailModal> createState() => _TareaDetailModalState();
@@ -42,6 +49,13 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
   bool _userModifiedState = false; // Flag para saber si el usuario modificó el estado manualmente
   String? _lastKnownTareaState; // Último estado conocido de la tarea desde el backend
   bool _isUserSelecting = false; // Flag para indicar que el usuario está seleccionando un valor
+  
+  // Controladores para edición simple (cuando no hay obraId)
+  late TextEditingController _nameController;
+  late TextEditingController _descriptionController;
+  late TextEditingController _durationController;
+  // COMENTADO: _formKey solo se usa en _buildSimpleEditForm que está comentado
+  // final _formKey = GlobalKey<FormState>();
 
   String _normalizeState(String state) {
     // Normalizar diferentes formatos de estado a nuestro formato estándar
@@ -66,31 +80,31 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
       return 'finalizado';
     }
     // Si no coincide, devolver "pendiente" por defecto (siempre debe estar en _estados)
-    print('🔵 _normalizeState - Estado no reconocido: "$state" -> normalizado: "$normalized" -> retornando "pendiente"');
     return 'pendiente';
   }
 
   @override
   void initState() {
     super.initState();
+    
+    // Inicializar controladores para edición simple (cuando no hay obraId)
+    // También los usaremos para admin cuando hay obraId
+    _nameController = TextEditingController(text: widget.tarea.name);
+    _descriptionController = TextEditingController(text: widget.tarea.description);
+    _durationController = TextEditingController(text: widget.tarea.duration.toString());
+    
     // NO refrescar las obras aquí para evitar reconstrucciones innecesarias
     // Solo refrescar cuando sea necesario (al abrir el modal)
     // context.read<ObraBloc>().add(const LoadObras());
     
     final normalizedState = _normalizeState(widget.tarea.state);
-    print('🔵 initState - widget.tarea.state: "${widget.tarea.state}"');
-    print('🔵 initState - normalizedState: "$normalizedState"');
-    print('🔵 initState - _estados: $_estados');
-    print('🔵 initState - contiene normalizedState: ${_estados.contains(normalizedState)}');
     
     // Asegurar que el estado normalizado esté en la lista _estados
     if (_estados.contains(normalizedState)) {
       _selectedState = normalizedState;
-      print('🔵 initState - _selectedState asignado: "$_selectedState"');
     } else {
       // Si no está en la lista, usar "pendiente" por defecto
       _selectedState = 'pendiente';
-      print('🔵 initState - _selectedState por defecto: "$_selectedState"');
     }
     // Inicializar con evidencias existentes
     _pendingEvidences = List<String>.from(widget.tarea.evidences);
@@ -100,14 +114,18 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
 
   @override
   void dispose() {
+    _nameController.dispose();
+    _descriptionController.dispose();
+    _durationController.dispose();
     super.dispose();
   }
 
   // Método para obtener la tarea actualizada del ObraBloc
   TareaEntity _getUpdatedTarea(BuildContext context) {
     final obraState = context.read<ObraBloc>().state;
-    if (obraState is ObraLoaded) {
-      // Buscar la obra que contiene esta tarea
+        // COMENTADO: Solo cargar obra si hay obraId (tareas independientes deshabilitadas)
+        if (obraState is ObraLoaded && widget.obraId != null && widget.obraId!.isNotEmpty) {
+      // Buscar la obra que contiene esta tarea (solo si hay obraId)
       final obra = obraState.obras.firstWhere(
         (o) => o.id == widget.obraId,
         orElse: () => throw Exception('Obra no encontrada'),
@@ -142,40 +160,47 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
         // 3. El estado del backend es diferente al que el usuario seleccionó
         final normalizedState = _normalizeState(tarea.state);
         
-        print('🔵 BlocBuilder - _userModifiedState: $_userModifiedState');
-        print('🔵 BlocBuilder - normalizedState: "$normalizedState"');
-        print('🔵 BlocBuilder - _lastKnownTareaState: "$_lastKnownTareaState"');
-        print('🔵 BlocBuilder - _selectedState: "$_selectedState"');
-        
         // NO actualizar desde el backend si:
         // 1. El usuario ya modificó el estado manualmente
         // 2. El usuario está seleccionando un valor en este momento
         if (_userModifiedState || _isUserSelecting) {
-          print('🔵 BlocBuilder - Usuario modificó/seleccionando estado, NO actualizar desde backend');
-          print('🔵 BlocBuilder - _userModifiedState: $_userModifiedState, _isUserSelecting: $_isUserSelecting');
         } else if (_estados.contains(normalizedState) && 
             normalizedState != _lastKnownTareaState &&
             normalizedState != _selectedState) {
           // El estado cambió desde el backend, actualizar
-          print('🔵 BlocBuilder - Estado cambió desde backend, actualizando...');
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted && !_userModifiedState && !_isUserSelecting) {
-              print('🔵 BlocBuilder - addPostFrameCallback ejecutado, actualizando estado a: "$normalizedState"');
               setState(() {
                 _selectedState = normalizedState;
                 _lastKnownTareaState = normalizedState;
                 _pendingEvidences = List<String>.from(tarea.evidences);
               });
             } else {
-              print('🔵 BlocBuilder - addPostFrameCallback NO actualiza porque _userModifiedState: $_userModifiedState, _isUserSelecting: $_isUserSelecting');
             }
           });
         } else if (!_userModifiedState && _lastKnownTareaState == null) {
           // Primera vez, inicializar el último estado conocido
-          print('🔵 BlocBuilder - Primera vez, inicializando _lastKnownTareaState: "$normalizedState"');
           _lastKnownTareaState = normalizedState;
-        } else {
-          print('🔵 BlocBuilder - No se actualiza estado (condiciones no cumplidas)');
+        }
+        
+        // Actualizar controladores de descripción y duración si es admin cuando la tarea se actualiza desde el backend
+        // Solo actualizar si el valor del backend es diferente y el usuario no está editando
+        // COMENTADO: Solo actualizar si hay obraId (tareas independientes deshabilitadas)
+        if (widget.isAdmin && widget.obraId != null && widget.obraId!.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted && tarea.description != _descriptionController.text &&
+                _descriptionController.text == widget.tarea.description) {
+              setState(() {
+                _descriptionController.text = tarea.description;
+              });
+            }
+            if (mounted && tarea.duration.toString() != _durationController.text &&
+                _durationController.text == widget.tarea.duration.toString()) {
+              setState(() {
+                _durationController.text = tarea.duration.toString();
+              });
+            }
+          });
         }
 
     return Container(
@@ -193,46 +218,69 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
             right: 24,
             bottom: MediaQuery.of(context).viewInsets.bottom + 24,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark ? Colors.white24 : Colors.black26,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      tarea.name,
-                      style: textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: -0.5,
-                        color: isDark ? Colors.white : Colors.black87,
+          child: 
+              // COMENTADO: Formulario simple para tareas independientes (obraId == null) - funcionalidad deshabilitada
+              // Las tareas deben estar asociadas a una obra
+              // widget.obraId == null
+              //     ? _buildSimpleEditForm(context, textTheme, tarea)
+              //     : 
+              widget.obraId == null
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 64,
+                            color: Colors.red.shade300,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Las tareas deben estar asociadas a una obra',
+                            style: textTheme.bodyLarge?.copyWith(
+                              color: isDark ? Colors.white70 : Colors.black87,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    )
+                  : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.close, size: 24),
-                    color: isDark ? Colors.white : Colors.black87,
-                    onPressed: () => Navigator.pop(context),
-                    style: IconButton.styleFrom(
-                      backgroundColor: isDark
-                          ? Colors.white.withValues(alpha: 0.1)
-                          : Colors.black.withValues(alpha: 0.1),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            tarea.name,
+                            style: textTheme.headlineSmall?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.close, size: 24),
+                          onPressed: () => Navigator.pop(context),
+                          style: IconButton.styleFrom(
+                            backgroundColor: Colors.white.withValues(alpha: 0.1),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 32),
+                    const SizedBox(height: 32),
               Text(
                 'Estado',
                 style: textTheme.titleMedium?.copyWith(
@@ -267,24 +315,15 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                     }
                     validValue ??= 'pendiente'; // Si no se encuentra, usar pendiente
                     
-                    print('🔵 Dropdown - _selectedState original: "$_selectedState"');
-                    print('🔵 Dropdown - normalizedSelected: "$normalizedSelected"');
-                    print('🔵 Dropdown - validValue: "$validValue"');
-                    print('🔵 Dropdown - _estados: $_estados');
-                    print('🔵 Dropdown - items count: ${_estados.length}');
-                    
                     // Verificar que no haya duplicados en _estados
                     final uniqueEstados = _estados.toSet().toList();
                     if (uniqueEstados.length != _estados.length) {
-                      print('🔵 ERROR - Hay duplicados en _estados!');
                     }
                     
                     // Verificar que validValue esté en items
                     final itemsValues = _estados.map((e) => e).toList();
                     final matchingItems = itemsValues.where((v) => v == validValue).length;
-                    print('🔵 Dropdown - Items con valor "$validValue": $matchingItems');
                     if (matchingItems != 1) {
-                      print('🔵 ERROR - Debe haber exactamente 1 item con valor "$validValue", pero hay $matchingItems');
                     }
                     
                     return DropdownButtonFormField<String>(
@@ -336,7 +375,6 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                   },
                   items: _estados.map((estado) {
                     final stateColor = FormatUtils.getStateColor(estado);
-                    print('🔵 Dropdown item - estado: "$estado", value: "$estado"');
                     return DropdownMenuItem<String>(
                       key: ValueKey(estado), // Agregar key único para evitar duplicados
                       value: estado,
@@ -370,9 +408,6 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                             _selectedState = value;
                             _userModifiedState = true; // Marcar que el usuario modificó el estado
                             _lastKnownTareaState = value; // Actualizar el último estado conocido para evitar que se sobrescriba
-                            print('🔵 Usuario cambió el estado a: $value');
-                            print('🔵 _userModifiedState: $_userModifiedState');
-                            print('🔵 _lastKnownTareaState actualizado a: $_lastKnownTareaState');
                           });
                           
                           // Después de un breve delay, permitir actualizaciones del backend nuevamente
@@ -382,7 +417,6 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                               setState(() {
                                 _isUserSelecting = false;
                               });
-                              print('🔵 _isUserSelecting reseteado a false');
                             }
                           });
                         }
@@ -392,15 +426,43 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                 ),
               ),
               const SizedBox(height: 32),
-              if (tarea.description.isNotEmpty) ...[
-                Text(
-                  'Descripción',
-                  style: textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white70 : Colors.black54,
+              // Descripción: editable para admin, solo lectura para master
+              Text(
+                'Descripción',
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white70,
+                ),
+              ),
+              const SizedBox(height: 12),
+              if (widget.isAdmin) ...[
+                // Admin puede editar la descripción
+                TextFormField(
+                  controller: _descriptionController,
+                  maxLines: 3,
+                  style: textTheme.bodyMedium,
+                  decoration: InputDecoration(
+                    hintText: 'Descripción de la tarea',
+                    hintStyle: textTheme.bodyMedium?.copyWith(
+                      color: Colors.white38,
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFF2B2B2B),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.1),
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.all(16),
                   ),
                 ),
-                const SizedBox(height: 12),
+              ] else ...[
+                // Master solo puede ver la descripción
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(16),
@@ -409,15 +471,12 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
-                    tarea.description,
-                    style: textTheme.bodyMedium?.copyWith(
-                      height: 1.5,
-                      color: isDark ? Colors.white : Colors.black87,
-                    ),
+                    tarea.description.isNotEmpty ? tarea.description : 'Sin descripción',
+                    style: textTheme.bodyMedium?.copyWith(height: 1.5),
                   ),
                 ),
-                const SizedBox(height: 32),
               ],
+              const SizedBox(height: 32),
               Text(
                 'Información',
                 style: textTheme.titleMedium?.copyWith(
@@ -429,22 +488,68 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
               Card(
                 color: isDark ? const Color(0xFF2B2B2B) : const Color(0xFFF5F5F5),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(20),
                   child: Column(
                     children: [
-                      if (tarea.duration > 0) ...[
-                        TareaInfoRow(
-                          icon: Icons.access_time,
-                          label: 'Duración',
-                          value: '${tarea.duration} días',
+                      // Duración: editable para admin, solo lectura para master
+                      if (widget.isAdmin) ...[
+                        // Admin puede editar la duración
+                        Text(
+                          'Duración (días)',
+                          style: textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white70,
+                          ),
                         ),
-                        if (tarea.evidences.isNotEmpty ||
-                            tarea.assignedTo != null)
-                          const SizedBox(height: 16),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _durationController,
+                          keyboardType: TextInputType.number,
+                          style: textTheme.bodyMedium,
+                          decoration: InputDecoration(
+                            hintText: '5',
+                            hintStyle: textTheme.bodyMedium?.copyWith(
+                              color: Colors.white38,
+                            ),
+                            filled: true,
+                            fillColor: const Color(0xFF1B1B1B),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: Colors.white.withValues(alpha: 0.1),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: TierraApp.primary,
+                                width: 2,
+                              ),
+                            ),
+                            contentPadding: const EdgeInsets.all(16),
+                          ),
+                        ),
+                      ] else ...[
+                        // Master solo puede ver la duración
+                        if (tarea.duration > 0) ...[
+                          TareaInfoRow(
+                            icon: Icons.access_time,
+                            label: 'Duración',
+                            value: '${tarea.duration} días',
+                          ),
+                        ],
                       ],
+                      if (tarea.duration > 0 &&
+                          (tarea.evidences.isNotEmpty ||
+                              tarea.assignedTo != null ||
+                              widget.isAdmin))
+                        const SizedBox(height: 16),
                       if (tarea.evidences.isNotEmpty) ...[
                         InkWell(
                           onTap: () {
@@ -564,8 +669,10 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                         ),
                 ),
               ),
-              // Sección de Evidencias (solo cuando el estado es "finalizado")
-              if (_selectedState == 'finalizado') ...[
+              // Sección de Evidencias
+              // Admin puede ver/editar evidencias en cualquier estado
+              // Master solo puede ver/editar evidencias cuando el estado es "finalizado"
+              if (widget.isAdmin || _selectedState == 'finalizado') ...[
                 const SizedBox(height: 32),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -651,72 +758,71 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                                 ),
                               ),
                             ),
-                          Positioned(
-                            bottom: 4,
-                            right: 4,
-                            child: InkWell(
-                              onTap: () {
-                                setState(() {
-                                  _pendingEvidences.removeAt(index);
-                                });
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.all(6),
-                                decoration: BoxDecoration(
-                                  color: Colors.red.withValues(alpha: 0.8),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(
-                                  Icons.delete_outline,
-                                  size: 16,
-                                  color: Colors.white,
+                          // Botón de eliminar: admin siempre puede eliminar, master solo en "finalizado"
+                          if (widget.isAdmin || _selectedState == 'finalizado')
+                            Positioned(
+                              bottom: 4,
+                              right: 4,
+                              child: InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    _pendingEvidences.removeAt(index);
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.withValues(alpha: 0.8),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.delete_outline,
+                                    size: 16,
+                                    color: Colors.white,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
                         ],
                       );
                     },
                   ),
                 const SizedBox(height: 12),
                 // Botones para agregar evidencias
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _isUploading ? null : () => _pickImageFromGallery(context),
-                        icon: const Icon(Icons.photo_library),
-                        label: const Text('Galería'),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          foregroundColor: isDark ? Colors.white : Colors.black87,
-                          side: BorderSide(
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.3)
-                                : Colors.black.withValues(alpha: 0.3),
+                // Admin puede agregar en cualquier estado, master solo en "finalizado"
+                if (widget.isAdmin || _selectedState == 'finalizado') ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _isUploading ? null : () => _pickImageFromGallery(context),
+                          icon: const Icon(Icons.photo_library),
+                          label: const Text('Galería'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            side: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.3),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _isUploading ? null : () => _takePicture(context),
-                        icon: const Icon(Icons.camera_alt),
-                        label: const Text('Cámara'),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          foregroundColor: isDark ? Colors.white : Colors.black87,
-                          side: BorderSide(
-                            color: isDark
-                                ? Colors.white.withValues(alpha: 0.3)
-                                : Colors.black.withValues(alpha: 0.3),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: _isUploading ? null : () => _takePicture(context),
+                          icon: const Icon(Icons.camera_alt),
+                          label: const Text('Cámara'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            side: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.3),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ],
                 if (_isUploading) ...[
                   const SizedBox(height: 16),
                   const Center(
@@ -744,19 +850,24 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                         .toList();
                     final hasNewEvidences = validPendingEvidences.length > tarea.evidences.length ||
                         validPendingEvidences.any((e) => !tarea.evidences.contains(e));
-                    // Ya no incluimos observación en canSave, se maneja por separado
-                    final canSave = (hasChanges || hasEvidenceChanges || hasNewEvidences) && !_isUploading;
                     
-                    print('🔵 Botón Guardar - hasChanges: $hasChanges');
-                    print('🔵 Botón Guardar - hasEvidenceChanges: $hasEvidenceChanges');
-                    print('🔵 Botón Guardar - hasNewEvidences: $hasNewEvidences');
-                    print('🔵 Botón Guardar - canSave: $canSave');
-                    print('🔵 Botón Guardar - _isUploading: $_isUploading');
+                    // Verificar cambios en descripción y duración para admin
+                    final hasDescriptionChanges = widget.isAdmin && 
+                                                  _descriptionController.text.trim() != tarea.description;
+                    final hasDurationChanges = widget.isAdmin && 
+                                              (int.tryParse(_durationController.text.trim()) ?? 0) != tarea.duration;
+                    
+                    // Ya no incluimos observación en canSave, se maneja por separado
+                    final canSave = (hasChanges || 
+                                    hasEvidenceChanges || 
+                                    hasNewEvidences || 
+                                    hasDescriptionChanges || 
+                                    hasDurationChanges) && 
+                                   !_isUploading;
                     
                     return FilledButton(
                       onPressed: canSave
                           ? () {
-                              print('🔵 Botón presionado!');
                               _saveChanges(context);
                             }
                           : null,
@@ -792,6 +903,271 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
     );
   }
 
+  // Versión simplificada del modal para edición sin obraId
+  // COMENTADO: Método para edición simple de tareas independientes (sin obraId) - funcionalidad deshabilitada
+  // El _formKey aún se declara pero solo se usa en este método comentado
+  /*
+  Widget _buildSimpleEditForm(BuildContext context, TextTheme textTheme, TareaEntity tarea) {
+    return Form(
+      key: _formKey, // COMENTADO: _formKey solo se usa aquí
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'Editar Tarea',
+                  style: textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, size: 24),
+                onPressed: () => Navigator.pop(context),
+                style: IconButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.1),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 32),
+          // Nombre
+          Text(
+            'Nombre',
+            style: textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w500,
+              color: Colors.white70,
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _nameController,
+            style: textTheme.bodyMedium,
+            decoration: InputDecoration(
+              hintText: 'Nombre de la tarea',
+              hintStyle: textTheme.bodyMedium?.copyWith(
+                color: Colors.white38,
+              ),
+              filled: true,
+              fillColor: const Color(0xFF2B2B2B),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                  color: TierraApp.primary,
+                  width: 2,
+                ),
+              ),
+              contentPadding: const EdgeInsets.all(16),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'El nombre es requerido';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 24),
+          // Descripción
+          Text(
+            'Descripción',
+            style: textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w500,
+              color: Colors.white70,
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _descriptionController,
+            maxLines: 3,
+            style: textTheme.bodyMedium,
+            decoration: InputDecoration(
+              hintText: 'Descripción de la tarea',
+              hintStyle: textTheme.bodyMedium?.copyWith(
+                color: Colors.white38,
+              ),
+              filled: true,
+              fillColor: const Color(0xFF2B2B2B),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                  color: TierraApp.primary,
+                  width: 2,
+                ),
+              ),
+              contentPadding: const EdgeInsets.all(16),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'La descripción es requerida';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 24),
+          // Duración
+          Text(
+            'Duración (días)',
+            style: textTheme.titleSmall?.copyWith(
+              fontWeight: FontWeight.w500,
+              color: Colors.white70,
+            ),
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            controller: _durationController,
+            keyboardType: TextInputType.number,
+            style: textTheme.bodyMedium,
+            decoration: InputDecoration(
+              hintText: '5',
+              hintStyle: textTheme.bodyMedium?.copyWith(
+                color: Colors.white38,
+              ),
+              filled: true,
+              fillColor: const Color(0xFF2B2B2B),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                  color: Colors.white.withValues(alpha: 0.1),
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                  color: TierraApp.primary,
+                  width: 2,
+                ),
+              ),
+              contentPadding: const EdgeInsets.all(16),
+            ),
+            validator: (value) {
+              if (value == null || value.trim().isEmpty) {
+                return 'La duración es requerida';
+              }
+              final duration = int.tryParse(value.trim());
+              if (duration == null || duration <= 0) {
+                return 'Debe ser un número positivo';
+              }
+              return null;
+            },
+          ),
+          const SizedBox(height: 32),
+          // Botón Guardar
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: () => _saveSimpleChanges(context),
+              style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                backgroundColor: TierraApp.primary,
+                foregroundColor: Colors.black,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                elevation: 0,
+              ),
+              child: Text(
+                'Guardar cambios',
+                style: textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  */
+
+  // COMENTADO: Método para guardar cambios simples de tareas independientes - funcionalidad deshabilitada
+  /*
+  Future<void> _saveSimpleChanges(BuildContext context) async {
+    if (!_formKey.currentState!.validate()) return;
+    if (!mounted) return;
+
+    final tareaBloc = context.read<TareaBloc>();
+    final duration = int.tryParse(_durationController.text.trim()) ?? 0;
+
+    // Crear tarea actualizada con solo nombre, descripción y duración
+    final updatedTarea = TareaEntity(
+      id: widget.tarea.id,
+      name: _nameController.text.trim(),
+      description: _descriptionController.text.trim(),
+      state: widget.tarea.state, // Mantener el estado original
+      duration: duration,
+      evidences: widget.tarea.evidences, // Mantener evidencias originales
+      assignedTo: widget.tarea.assignedTo,
+      observation: widget.tarea.observation, // Mantener observación original
+      obraTareaId: widget.tarea.obraTareaId, // Mantener obraTareaId original
+    );
+
+    tareaBloc.add(UpdateTarea(updatedTarea, ''));
+
+    // Esperar a que termine
+    try {
+      await tareaBloc.stream
+          .where((state) => state is! TareaLoading)
+          .skip(1)
+          .timeout(const Duration(seconds: 10))
+          .first;
+    } catch (e) {
+      final currentState = tareaBloc.state;
+      if (currentState is! TareaLoaded && currentState is! TareaError) {
+        rethrow;
+      }
+    }
+
+    if (mounted) {
+      // Refrescar la lista de tareas
+      tareaBloc.add(LoadTareas(page: 1, limit: 10));
+      Navigator.pop(context, true);
+      CustomSnackBar.showSuccess(
+        context,
+        message: 'Tarea actualizada correctamente',
+      );
+    }
+  }
+  */
+
   void _openObservationModal(BuildContext context, TareaEntity tarea) {
     showModalBottomSheet(
       context: context,
@@ -803,13 +1179,14 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
         builder: (context, obraState) {
           // Obtener la tarea actualizada del BLoC
           final updatedTarea = _getUpdatedTarea(context);
+          final obraId = widget.obraId ?? '';
           return ObservationModal(
             tarea: updatedTarea,
-            obraId: widget.obraId,
+            obraId: obraId,
           );
         },
       ),
-    ).then((saved) {
+    ).then((saved) { 
       // Si se guardó la observación, refrescar el modal principal
       if (saved == true && mounted) {
         context.read<ObraBloc>().add(const LoadObras());
@@ -820,6 +1197,7 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
   bool _hasChanges(TareaEntity tarea) {
     final stateChanged = _selectedState != _normalizeState(tarea.state);
     // Ya no verificamos cambios en observación aquí, se maneja en el modal separado
+    // Los cambios en descripción y duración se verifican en el builder del botón
     return stateChanged;
   }
 
@@ -827,22 +1205,14 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
     // Comparar si las evidencias han cambiado
     final currentEvidences = tarea.evidences;
     
-    print('🔵 _hasEvidenceChanges - currentEvidences: $currentEvidences');
-    print('🔵 _hasEvidenceChanges - _pendingEvidences: $_pendingEvidences');
-    
     // Si las longitudes son diferentes, hay cambios
     if (_pendingEvidences.length != currentEvidences.length) {
-      print('🔵 _hasEvidenceChanges - Diferencia en longitud: ${_pendingEvidences.length} vs ${currentEvidences.length}');
       return true;
     }
     
     // Verificar si hay URLs nuevas (que empiezan con http pero no están en las originales)
     final validPendingEvidences = _pendingEvidences.where((e) => e.startsWith('http')).toList();
     final newUrls = validPendingEvidences.where((e) => !currentEvidences.contains(e)).toList();
-    
-    print('🔵 _hasEvidenceChanges - validPendingEvidences: $validPendingEvidences');
-    print('🔵 _hasEvidenceChanges - newUrls: $newUrls');
-    print('🔵 _hasEvidenceChanges - resultado: ${newUrls.isNotEmpty}');
     
     return newUrls.isNotEmpty;
   }
@@ -940,16 +1310,15 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
           _pendingEvidences[index] = cloudinaryUrl;
         }
         // Si hay evidencias y el estado no es "finalizado", actualizar automáticamente
-        final validEvidences = _pendingEvidences
-            .where((e) => e.startsWith('http'))
-            .toList();
-        print('🔵 _uploadImage - validEvidences después de subir: $validEvidences');
-        print('🔵 _uploadImage - _selectedState antes: $_selectedState');
-        if (validEvidences.isNotEmpty && _selectedState != 'finalizado') {
-          _selectedState = 'finalizado';
-          print('🔵 _uploadImage - Estado actualizado a: $_selectedState');
+        // Solo para master, admin puede mantener cualquier estado
+        if (!widget.isAdmin) {
+          final validEvidences = _pendingEvidences
+              .where((e) => e.startsWith('http'))
+              .toList();
+          if (validEvidences.isNotEmpty && _selectedState != 'finalizado') {
+            _selectedState = 'finalizado';
+          }
         }
-        print('🔵 _uploadImage - _pendingEvidences final: $_pendingEvidences');
       });
 
       if (mounted) {
@@ -992,17 +1361,16 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
     // Obtener la tarea actualizada
     final tarea = _getUpdatedTarea(context);
     
-    print('🔵 _saveChanges llamado');
     final stateChanged = _selectedState != _normalizeState(tarea.state);
     // Ya no manejamos observación aquí, se maneja en el modal separado
     final evidenceChanged = _hasEvidenceChanges(tarea);
     
-    print('🔵 stateChanged: $stateChanged');
-    print('🔵 evidenceChanged: $evidenceChanged');
-    print('🔵 _selectedState: $_selectedState');
-    print('🔵 tarea.state: ${tarea.state}');
-    print('🔵 _pendingEvidences: $_pendingEvidences');
-
+    // Verificar si admin modificó descripción o duración
+    final descriptionChanged = widget.isAdmin && 
+                               _descriptionController.text.trim() != tarea.description;
+    final durationChanged = widget.isAdmin && 
+                            (int.tryParse(_durationController.text.trim()) ?? 0) != tarea.duration;
+    
     // Filtrar evidencias válidas (solo URLs)
     final validPendingEvidences = _pendingEvidences
         .where((e) => e.startsWith('http'))
@@ -1010,57 +1378,48 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
     final hasNewEvidencesInPending = validPendingEvidences.length > tarea.evidences.length ||
         validPendingEvidences.any((e) => !tarea.evidences.contains(e));
     
-    print('🔵 Resumen de cambios:');
-    print('🔵 - stateChanged: $stateChanged');
-    print('🔵 - hasNewEvidencesInPending: $hasNewEvidencesInPending');
-    
     final currentStateNormalized = _normalizeState(tarea.state);
-    final needsAutoStateUpdate = hasNewEvidencesInPending && 
+    // Solo auto-actualizar estado si es master, admin puede cambiar estado manualmente sin restricciones
+    final needsAutoStateUpdate = !widget.isAdmin &&
+                                 hasNewEvidencesInPending && 
                                  currentStateNormalized != 'finalizado' && 
                                  !stateChanged;
     
-    print('🔵 - needsAutoStateUpdate: $needsAutoStateUpdate (evidencias nuevas + estado no finalizado + usuario no cambió estado)');
-    
-    // 1. Si hay evidencias nuevas, actualizar evidencias primero y ESPERAR
-    if (hasNewEvidencesInPending || evidenceChanged) {
-      print('🔵 1. Actualizando evidencias con UpdateTareaEvidences');
-      print('🔵 Evidencias a enviar: $validPendingEvidences');
-      
-      tareaBloc.add(
-        UpdateTareaEvidences(
-          obraId,
-          tarea.id,
-          validPendingEvidences,
-        ),
-      );
-      
-      // Esperar a que termine la actualización (deje de estar en loading)
-      try {
-        if (!mounted) return;
-        await tareaBloc.stream
-            .where((state) => state is! TareaLoading)
-            .timeout(const Duration(seconds: 10))
-            .first;
-        print('🔵 1.1. Actualización de evidencias completada');
-      } catch (e) {
-        print('🔵 1.1. Timeout esperando evidencias: $e');
-        if (!mounted) return;
+    // COMENTADO: Manejo de tareas independientes (obraId == null) - funcionalidad deshabilitada
+    // Las tareas deben estar asociadas a una obra
+    if (obraId == null || obraId.isEmpty) {
+      if (mounted) {
+        CustomSnackBar.showError(
+          context,
+          message: 'Las tareas deben estar asociadas a una obra',
+        );
       }
+      return;
     }
-    
-    // 2. Si cambió el estado manualmente O necesita auto-actualización por evidencias
-    if (stateChanged) {
-      // Usuario cambió el estado manualmente
-      print('🔵 2. Actualizando estado con UpdateTareaState (cambio manual)');
-      print('🔵 Nuevo estado: $_selectedState');
+    /* COMENTADO: Código para actualizar tareas independientes
+    if (obraId == null) {
+      // Actualizar todo usando UpdateTarea (evidencias, estado, etc.)
       
-      tareaBloc.add(
-        UpdateTareaState(
-          obraId,
-          tarea.id,
-          _selectedState,
-        ),
+      // Determinar el estado final
+      String finalState = _selectedState;
+      if (needsAutoStateUpdate && !stateChanged) {
+        finalState = 'finalizado';
+      }
+      
+      // Crear tarea actualizada con todas las modificaciones
+      final updatedTarea = TareaEntity(
+        id: tarea.id,
+        name: tarea.name,
+        description: tarea.description,
+        state: finalState,
+        duration: tarea.duration,
+        evidences: validPendingEvidences,
+        assignedTo: tarea.assignedTo,
+        observation: tarea.observation,
+        obraTareaId: tarea.obraTareaId, // Mantener obraTareaId original
       );
+      
+      tareaBloc.add(UpdateTarea(updatedTarea, ''));
       
       // Esperar a que termine
       try {
@@ -1069,39 +1428,119 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
             .where((state) => state is! TareaLoading)
             .timeout(const Duration(seconds: 10))
             .first;
-        print('🔵 2.1. Actualización de estado completada');
       } catch (e) {
-        print('🔵 2.1. Timeout esperando estado: $e');
         if (!mounted) return;
       }
-    } else if (needsAutoStateUpdate) {
-      // Auto-actualizar a "finalizado" solo si hay evidencias nuevas Y el usuario NO cambió el estado
-      print('🔵 2. Auto-actualizando estado a "finalizado" por evidencias nuevas');
-      
-      tareaBloc.add(
-        UpdateTareaState(
-          obraId,
-          tarea.id,
-          'finalizado',
-        ),
-      );
-      
-      // Esperar a que termine
-      try {
-        if (!mounted) return;
-        await tareaBloc.stream
-            .where((state) => state is! TareaLoading)
-            .timeout(const Duration(seconds: 10))
-            .first;
-        print('🔵 2.1. Auto-actualización de estado completada');
-      } catch (e) {
-        print('🔵 2.1. Timeout esperando auto-estado: $e');
-        if (!mounted) return;
+    } else {
+    */
+      // Si hay obraId
+      // Si es admin y modificó descripción o duración, usar UpdateTarea para actualizar todo junto
+      if (widget.isAdmin && (descriptionChanged || durationChanged || stateChanged || evidenceChanged)) {
+        // Admin puede actualizar todo junto usando UpdateTarea
+        final duration = int.tryParse(_durationController.text.trim()) ?? tarea.duration;
+        final description = _descriptionController.text.trim();
+        
+        // Determinar el estado final
+        String finalState = _selectedState;
+        
+        // Crear tarea actualizada con todas las modificaciones
+        final updatedTarea = TareaEntity(
+          id: tarea.id,
+          name: tarea.name,
+          description: description,
+          state: finalState,
+          duration: duration,
+          evidences: validPendingEvidences,
+          assignedTo: tarea.assignedTo,
+          observation: tarea.observation,
+          obraTareaId: tarea.obraTareaId, // Mantener obraTareaId original
+        );
+        
+        tareaBloc.add(UpdateTarea(updatedTarea, obraId));
+        
+        // Esperar a que termine
+        try {
+          if (!mounted) return;
+          await tareaBloc.stream
+              .where((state) => state is! TareaLoading)
+              .timeout(const Duration(seconds: 10))
+              .first;
+        } catch (e) {
+          if (!mounted) return;
+        }
+      } else {
+        // Para master (o admin sin cambios en descripción/duración), usar los métodos específicos
+        // 1. Si hay evidencias nuevas, actualizar evidencias primero y ESPERAR
+        if (hasNewEvidencesInPending || evidenceChanged) {
+          tareaBloc.add(
+            UpdateTareaEvidences(
+              obraId,
+              tarea.id,
+              validPendingEvidences,
+            ),
+          );
+          
+          // Esperar a que termine la actualización (deje de estar en loading)
+          try {
+            if (!mounted) return;
+            await tareaBloc.stream
+                .where((state) => state is! TareaLoading)
+                .timeout(const Duration(seconds: 10))
+                .first;
+          } catch (e) {
+            if (!mounted) return;
+          }
+        }
+        
+        // 2. Si cambió el estado manualmente O necesita auto-actualización por evidencias
+        if (stateChanged) {
+          // Usuario cambió el estado manualmente
+          tareaBloc.add(
+            UpdateTareaState(
+              obraId,
+              tarea.id,
+              _selectedState,
+            ),
+          );
+          
+          // Esperar a que termine
+          try {
+            if (!mounted) return;
+            await tareaBloc.stream
+                .where((state) => state is! TareaLoading)
+                .timeout(const Duration(seconds: 10))
+                .first;
+          } catch (e) {
+            if (!mounted) return;
+          }
+        } else if (needsAutoStateUpdate) {
+          // Auto-actualizar a "finalizado" solo si hay evidencias nuevas Y el usuario NO cambió el estado
+          // Solo para master
+          
+          tareaBloc.add(
+            UpdateTareaState(
+              obraId,
+              tarea.id,
+              'finalizado',
+            ),
+          );
+          
+          // Esperar a que termine
+          try {
+            if (!mounted) return;
+            await tareaBloc.stream
+                .where((state) => state is! TareaLoading)
+                .timeout(const Duration(seconds: 10))
+                .first;
+          } catch (e) {
+            if (!mounted) return;
+          }
+        }
       }
-    }
+    // COMENTADO: Fin del bloque else para obraId != null
+    // }
     
     // 3. La observación se maneja en un modal separado, no aquí
-    print('🔵 3. Observación se maneja en modal separado');
 
     if (mounted) {
       Navigator.pop(context);

@@ -1,5 +1,4 @@
 import '../entities/obra_entity.dart';
-import '../entities/user_entity.dart';
 import '../entities/tarea_entity.dart';
 import 'user_mapper.dart' as user_mapper;
 
@@ -23,6 +22,7 @@ class ObraMapper {
               ?.map((t) => TareaMapper.fromJson(t as Map<String, dynamic>))
               .toList() ??
           [],
+      estado: json['estado']?.toString() ?? 'pendiente',
     );
   }
 
@@ -57,6 +57,8 @@ class TareaMapper {
               ?.map((e) => e.toString())
               .toList() ??
           [],
+      observation: json['observation']?.toString(),
+      obraTareaId: json['obra_tarea_id']?.toString(), // Mapear obra_tarea_id desde el API
     );
   }
 }

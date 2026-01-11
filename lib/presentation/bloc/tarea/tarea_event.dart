@@ -9,7 +9,13 @@ abstract class TareaEvent extends Equatable {
 }
 
 class LoadTareas extends TareaEvent {
-  const LoadTareas();
+  final int page;
+  final int limit;
+
+  const LoadTareas({this.page = 1, this.limit = 10});
+
+  @override
+  List<Object?> get props => [page, limit];
 }
 
 class LoadTareaById extends TareaEvent {
@@ -19,6 +25,15 @@ class LoadTareaById extends TareaEvent {
 
   @override
   List<Object?> get props => [id];
+}
+
+class LoadObraTareaById extends TareaEvent {
+  final String obraTareaId;
+
+  const LoadObraTareaById(this.obraTareaId);
+
+  @override
+  List<Object?> get props => [obraTareaId];
 }
 
 class LoadTareasByObra extends TareaEvent {

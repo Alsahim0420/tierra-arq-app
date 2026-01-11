@@ -19,14 +19,16 @@ class TareaLoading extends TareaState {
 class TareaLoaded extends TareaState {
   final List<TareaEntity> tareas;
   final TareaEntity? selectedTarea;
+  final Map<String, dynamic>? selectedObraTarea;
 
   const TareaLoaded({
     required this.tareas,
     this.selectedTarea,
+    this.selectedObraTarea,
   });
 
   @override
-  List<Object?> get props => [tareas, selectedTarea];
+  List<Object?> get props => [tareas, selectedTarea, selectedObraTarea];
 }
 
 class TareaError extends TareaState {
