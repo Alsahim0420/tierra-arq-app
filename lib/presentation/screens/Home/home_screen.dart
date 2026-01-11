@@ -25,33 +25,42 @@ class _HomeScreenState extends State<HomeScreen> {
   // Callback para cambiar a la vista de obras desde el dashboard
   void _navigateToObras() {
     setState(() {
-      _currentIndex = 1;
+      // Si es admin, el índice de Obras es 1, si no es admin es 0
+      _currentIndex = UserRoleUtils.isAdmin(widget.user) ? 1 : 0;
     });
   }
 
   // Lista de pantallas disponibles según el rol del usuario
   List<Widget> get _screens {
-    final screens = <Widget>[
-      // Índice 0: Dashboard (siempre visible)
-      DashboardScreen(
-        user: widget.user,
-        onLogout: widget.onLogout,
-        onNavigateToObras: _navigateToObras,
-      ),
-      // Índice 1: Obras Activas (siempre visible)
+    final screens = <Widget>[];
+
+    // Índice 0: Dashboard (solo para administrador)
+    if (UserRoleUtils.isAdmin(widget.user)) {
+      screens.add(
+        DashboardScreen(
+          user: widget.user,
+          onLogout: widget.onLogout,
+          onNavigateToObras: _navigateToObras,
+        ),
+      );
+    }
+
+    // Obras Activas (siempre visible)
+    // Índice 0 si no es admin, índice 1 si es admin
+    screens.add(
       ObrasListScreen(
         user: widget.user,
         onLogout: widget.onLogout,
         showFAB: true, // FAB solo en obras activas
       ),
-    ];
+    );
 
-    // Índice 2: Gestión de Maestros (solo para administrador)
+    // Gestión de Maestros (solo para administrador)
     if (UserRoleUtils.isAdmin(widget.user)) {
       screens.add(const UsersListScreen());
     }
 
-    // Índice 3 o 2 (dependiendo si es admin): Perfil (siempre visible)
+    // Perfil (siempre visible)
     screens.add(ProfileScreen(user: widget.user, onLogout: widget.onLogout));
 
     return screens;
@@ -59,22 +68,29 @@ class _HomeScreenState extends State<HomeScreen> {
 
   // Lista de items de navegación según el rol
   List<_NavItem> get _navItems {
-    final items = <_NavItem>[
-      // Índice 0: Dashboard
-      const _NavItem(
-        icon: Icons.dashboard_outlined,
-        activeIcon: Icons.dashboard,
-        label: 'Inicio',
-      ),
-      // Índice 1: Obras Activas
+    final items = <_NavItem>[];
+
+    // Dashboard (solo para administrador)
+    if (UserRoleUtils.isAdmin(widget.user)) {
+      items.add(
+        const _NavItem(
+          icon: Icons.dashboard_outlined,
+          activeIcon: Icons.dashboard,
+          label: 'Inicio',
+        ),
+      );
+    }
+
+    // Obras Activas (siempre visible)
+    items.add(
       const _NavItem(
         icon: Icons.construction_outlined,
         activeIcon: Icons.construction,
         label: 'Obras',
       ),
-    ];
+    );
 
-    // Índice 2: Gestión de Maestros (solo para administrador)
+    // Gestión de Maestros (solo para administrador)
     if (UserRoleUtils.isAdmin(widget.user)) {
       items.add(
         const _NavItem(
@@ -85,7 +101,7 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
 
-    // Último índice: Perfil
+    // Perfil (siempre visible)
     items.add(
       const _NavItem(
         icon: Icons.person_outline,
@@ -101,8 +117,11 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
+    // Asegurar que el índice esté dentro del rango válido
+    final validIndex = _currentIndex < _screens.length ? _currentIndex : 0;
+
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: _screens),
+      body: IndexedStack(index: validIndex, children: _screens),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1B1B1B) : Colors.white,

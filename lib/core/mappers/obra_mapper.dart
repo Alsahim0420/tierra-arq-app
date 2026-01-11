@@ -6,6 +6,20 @@ import 'user_mapper.dart' as user_mapper;
 class ObraMapper {
   /// Convertir JSON de la API a ObraEntity
   static ObraEntity fromJson(Map<String, dynamic> json) {
+    // Helper para parsear fechas
+    DateTime? parseDate(dynamic value) {
+      if (value == null) return null;
+      if (value is DateTime) return value;
+      if (value is String) {
+        try {
+          return DateTime.parse(value);
+        } catch (e) {
+          return null;
+        }
+      }
+      return null;
+    }
+
     return ObraEntity(
       id: json['_id']?.toString() ?? json['id']?.toString() ?? '',
       title: json['title']?.toString() ?? json['name']?.toString() ?? '',
@@ -23,6 +37,9 @@ class ObraMapper {
               .toList() ??
           [],
       estado: json['estado']?.toString() ?? 'pendiente',
+      fechaInicio: parseDate(json['fechaInicio'] ?? json['fecha_inicio'] ?? json['startDate']),
+      fechaFin: parseDate(json['fechaFin'] ?? json['fecha_fin'] ?? json['endDate']),
+      fechaEntrega: parseDate(json['fechaEntrega'] ?? json['fecha_entrega'] ?? json['deliveryDate'] ?? json['deadline']),
     );
   }
 
