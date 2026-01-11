@@ -74,6 +74,7 @@ class _TareasListScreenState extends State<TareasListScreen> {
           if (authState is AuthAuthenticated &&
               UserRoleUtils.isAdmin(authState.user)) {
             return FloatingActionButton.extended(
+              heroTag: 'fab_nueva_tarea',
               onPressed: () {
                 _showCreateTareaModal(context);
               },

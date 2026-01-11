@@ -12,7 +12,7 @@ import '../../bloc/obra/obra_state.dart';
 import '../../utils/format_utils.dart';
 import '../obra/obra_detail_screen.dart';
 import '../obra/create_obra_screen.dart';
-import '../tarea/tarea_detail_modal.dart';
+import '../tarea/tarea_detail_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({
@@ -796,6 +796,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'fab_dashboard_nueva_obra',
         onPressed: () {
           Navigator.push(
             context,
@@ -957,13 +958,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           child: InkWell(
                             onTap: () {
                               Navigator.pop(context);
-                              showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                backgroundColor: Colors.transparent,
-                                builder: (modalContext) => TareaDetailModal(
-                                  tarea: tarea,
-                                  obraId: item.obraId,
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => TareaDetailScreen(
+                                    tarea: tarea,
+                                    obraId: item.obraId,
+                                    user: widget.user,
+                                  ),
                                 ),
                               );
                             },

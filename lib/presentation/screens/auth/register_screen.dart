@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/widgets/custom_snackbar.dart';
+import '../../../core/constants/colombian_cities.dart';
 import '../../bloc/user/user_bloc.dart';
 import '../../bloc/user/user_event.dart';
 import '../../bloc/user/user_state.dart';
@@ -26,10 +27,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _phoneController = TextEditingController();
-  final _cityController = TextEditingController();
   final _dniController = TextEditingController();
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  String? _selectedDepartment;
+  String? _selectedCity;
 
   @override
   void dispose() {
@@ -39,7 +41,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     _phoneController.dispose();
-    _cityController.dispose();
     _dniController.dispose();
     super.dispose();
   }
@@ -52,7 +53,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
     final phone = _phoneController.text.trim();
-    final city = _cityController.text.trim();
+    final city = _selectedCity ?? '';
     final dni = _dniController.text.trim();
 
     context.read<UserBloc>().add(
@@ -61,9 +62,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
             lastname: lastname,
             email: email,
             password: password,
-            phone: phone.isNotEmpty ? int.tryParse(phone) : null,
+            phone: int.tryParse(phone),
             city: city,
-            dni: dni.isNotEmpty ? int.tryParse(dni) : null,
+            dni: int.tryParse(dni),
           ),
         );
   }
@@ -271,59 +272,112 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      // Teléfono (opcional)
+                      // Teléfono
                       TextFormField(
                         controller: _phoneController,
                         keyboardType: TextInputType.phone,
                         textInputAction: TextInputAction.next,
                         decoration: InputDecoration(
-                          labelText: 'Teléfono (opcional)',
+                          labelText: 'Teléfono *',
                           prefixIcon: const Icon(Icons.phone_outlined),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                         validator: (value) {
-                          if (value != null && value.trim().isNotEmpty) {
-                            if (int.tryParse(value.trim()) == null) {
-                              return 'Debe ser un número válido';
-                            }
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Requerido';
+                          }
+                          if (int.tryParse(value.trim()) == null) {
+                            return 'Debe ser un número válido';
                           }
                           return null;
                         },
                       ),
                       const SizedBox(height: 16),
-                      // Ciudad (opcional)
-                      TextFormField(
-                        controller: _cityController,
-                        textInputAction: TextInputAction.next,
+                      // Departamento
+                      DropdownButtonFormField<String>(
+                        value: _selectedDepartment,
                         decoration: InputDecoration(
-                          labelText: 'Ciudad (opcional)',
+                          labelText: 'Departamento *',
+                          prefixIcon: const Icon(Icons.map_outlined),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        items: ColombianCities.departmentsList.map((department) {
+                          return DropdownMenuItem<String>(
+                            value: department,
+                            child: Text(department),
+                          );
+                        }).toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            _selectedDepartment = value;
+                            _selectedCity = null; // Reset ciudad cuando cambia el departamento
+                          });
+                        },
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Requerido';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      // Ciudad
+                      DropdownButtonFormField<String>(
+                        value: _selectedCity,
+                        decoration: InputDecoration(
+                          labelText: 'Ciudad *',
                           prefixIcon: const Icon(Icons.location_city_outlined),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
+                        items: _selectedDepartment != null
+                            ? ColombianCities.getCitiesForDepartment(_selectedDepartment!)
+                                .map((city) {
+                                  return DropdownMenuItem<String>(
+                                    value: city,
+                                    child: Text(city),
+                                  );
+                                }).toList()
+                            : [],
+                        onChanged: _selectedDepartment != null
+                            ? (value) {
+                                setState(() {
+                                  _selectedCity = value;
+                                });
+                              }
+                            : null,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Requerido';
+                          }
+                          return null;
+                        },
                       ),
                       const SizedBox(height: 16),
-                      // DNI (opcional)
+                      // DNI
                       TextFormField(
                         controller: _dniController,
                         keyboardType: TextInputType.number,
                         textInputAction: TextInputAction.done,
                         onFieldSubmitted: (_) => _handleRegister(context),
                         decoration: InputDecoration(
-                          labelText: 'DNI (opcional)',
+                          labelText: 'DNI *',
                           prefixIcon: const Icon(Icons.badge_outlined),
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                         validator: (value) {
-                          if (value != null && value.trim().isNotEmpty) {
-                            if (int.tryParse(value.trim()) == null) {
-                              return 'Debe ser un número válido';
-                            }
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Requerido';
+                          }
+                          if (int.tryParse(value.trim()) == null) {
+                            return 'Debe ser un número válido';
                           }
                           return null;
                         },
