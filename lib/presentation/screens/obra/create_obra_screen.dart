@@ -509,7 +509,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
             letterSpacing: -0.4,
           ),
         ),
-        backgroundColor: isDark ? const Color(0xFF1B1B1B) : TierraApp.primary,
+        backgroundColor: TierraApp.getAppBarColor(isDark),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SafeArea(

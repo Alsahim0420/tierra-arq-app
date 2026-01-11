@@ -54,7 +54,10 @@ class _UsersListScreenState extends State<UsersListScreen> {
       }
 
       final getMasterUsersUseCase = di.getIt<GetMasterUsersUseCase>();
-      final users = await getMasterUsersUseCase.call(page: _currentPage, limit: _limit);
+      final users = await getMasterUsersUseCase.call(
+        page: _currentPage,
+        limit: _limit,
+      );
 
       if (mounted) {
         setState(() {
@@ -125,7 +128,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
             letterSpacing: -0.4,
           ),
         ),
-        backgroundColor: isDark ? const Color(0xFF1B1B1B) : TierraApp.primary,
+        backgroundColor: TierraApp.getAppBarColor(isDark),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       floatingActionButton: BlocBuilder<AuthBloc, AuthState>(
@@ -156,11 +159,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.red.shade300,
-            ),
+            Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -238,7 +237,9 @@ class _UsersListScreenState extends State<UsersListScreen> {
                   Row(
                     children: [
                       CircleAvatar(
-                        backgroundColor: TierraApp.primary.withValues(alpha: 0.2),
+                        backgroundColor: TierraApp.primary.withValues(
+                          alpha: 0.2,
+                        ),
                         child: Text(
                           user.name.isNotEmpty
                               ? user.name[0].toUpperCase()
@@ -268,14 +269,18 @@ class _UsersListScreenState extends State<UsersListScreen> {
                                   Icon(
                                     Icons.email,
                                     size: 14,
-                                    color: isDark ? Colors.white54 : Colors.black54,
+                                    color: isDark
+                                        ? Colors.white54
+                                        : Colors.black54,
                                   ),
                                   const SizedBox(width: 4),
                                   Expanded(
                                     child: Text(
                                       user.email,
                                       style: textTheme.bodySmall?.copyWith(
-                                        color: isDark ? Colors.white70 : Colors.black54,
+                                        color: isDark
+                                            ? Colors.white70
+                                            : Colors.black54,
                                       ),
                                       overflow: TextOverflow.ellipsis,
                                     ),
@@ -320,10 +325,10 @@ class _UsersListScreenState extends State<UsersListScreen> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  if (user.phone != null || user.city.isNotEmpty || user.dni != null) ...[
-                    Divider(
-                      color: isDark ? Colors.white24 : Colors.black12,
-                    ),
+                  if (user.phone != null ||
+                      user.city.isNotEmpty ||
+                      user.dni != null) ...[
+                    Divider(color: isDark ? Colors.white24 : Colors.black12),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 16,
@@ -375,11 +380,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(
-          icon,
-          size: 16,
-          color: isDark ? Colors.white54 : Colors.black54,
-        ),
+        Icon(icon, size: 16, color: isDark ? Colors.white54 : Colors.black54),
         const SizedBox(width: 4),
         Text(
           '$label: ',
@@ -398,4 +399,3 @@ class _UsersListScreenState extends State<UsersListScreen> {
     );
   }
 }
-
