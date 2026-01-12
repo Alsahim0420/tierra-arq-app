@@ -30,6 +30,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
   final _locationController = TextEditingController();
   final _cityController = TextEditingController();
   final _costoController = TextEditingController();
+  final _costoEstimadoController = TextEditingController();
   
   UserEntity? _selectedResponsable;
   final List<UserEntity> _availableUsers = [];
@@ -75,6 +76,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
     _locationController.dispose();
     _cityController.dispose();
     _costoController.dispose();
+    _costoEstimadoController.dispose();
     super.dispose();
   }
 
@@ -413,7 +415,10 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
     final obraBloc = context.read<ObraBloc>();
 
     try {
-      final costo = double.tryParse(_costoController.text.trim()) ?? 0.0;
+      final costo = FormatUtils.parseCurrency(_costoController.text.trim()) ?? 0.0;
+      final costoEstimado = _costoEstimadoController.text.trim().isNotEmpty
+          ? FormatUtils.parseCurrency(_costoEstimadoController.text.trim())
+          : null;
 
       // Validar que todas las tareas tengan ID (deben estar creadas en el servidor)
       final tareasSinId = _tareasToAdd.where((t) => t.id.isEmpty).toList();
@@ -431,6 +436,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
         city: _cityController.text.trim(),
         responsable: _selectedResponsable!,
         costo: costo,
+        costoEstimado: costoEstimado,
         tareas: _tareasToAdd, // Tareas ya creadas con sus IDs - el backend las asociará
       );
 
@@ -736,57 +742,138 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                   ],
                 ),
                 const SizedBox(height: 24),
-                // Costo
-                Text(
-                  'Costo',
-                  style: textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: isDark ? Colors.white70 : Colors.black54,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _costoController,
-                  keyboardType: TextInputType.number,
-                  style: textTheme.bodyMedium?.copyWith(
-                    color: isDark ? Colors.white : Colors.black87,
-                  ),
-                  decoration: InputDecoration(
-                    hintText: '604000',
-                    hintStyle: textTheme.bodyMedium?.copyWith(
-                      color: isDark ? Colors.white38 : Colors.black38,
-                    ),
-                    filled: true,
-                    fillColor: isDark ? const Color(0xFF2B2B2B) : Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(
-                        color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.1),
+                // Costo y Costo Estimado
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Costo',
+                            style: textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w500,
+                              color: isDark ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _costoController,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [CurrencyInputFormatter()],
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                            decoration: InputDecoration(
+                              prefixText: '\$ ',
+                              prefixStyle: textTheme.bodyMedium?.copyWith(
+                                color: isDark ? Colors.white70 : Colors.black87,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              hintText: '604.000',
+                              hintStyle: textTheme.bodyMedium?.copyWith(
+                                color: isDark ? Colors.white38 : Colors.black38,
+                              ),
+                              filled: true,
+                              fillColor: isDark ? const Color(0xFF2B2B2B) : Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(
+                                  color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.1),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(
+                                  color: TierraApp.primary,
+                                  width: 2,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.all(16),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.trim().isEmpty) {
+                                return 'El costo es requerido';
+                              }
+                              final costo = FormatUtils.parseCurrency(value.trim());
+                              if (costo == null || costo <= 0) {
+                                return 'Debe ser un número positivo';
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
                       ),
                     ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(16),
-                      borderSide: BorderSide(
-                        color: TierraApp.primary,
-                        width: 2,
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Costo Estimado',
+                            style: textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w500,
+                              color: isDark ? Colors.white70 : Colors.black54,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          TextFormField(
+                            controller: _costoEstimadoController,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [CurrencyInputFormatter()],
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                            decoration: InputDecoration(
+                              prefixText: '\$ ',
+                              prefixStyle: textTheme.bodyMedium?.copyWith(
+                                color: isDark ? Colors.white70 : Colors.black87,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              hintText: '500.000',
+                              hintStyle: textTheme.bodyMedium?.copyWith(
+                                color: isDark ? Colors.white38 : Colors.black38,
+                              ),
+                              filled: true,
+                              fillColor: isDark ? const Color(0xFF2B2B2B) : Colors.white,
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(
+                                  color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.1),
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide(
+                                  color: TierraApp.primary,
+                                  width: 2,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.all(16),
+                            ),
+                            validator: (value) {
+                              if (value != null && value.trim().isNotEmpty) {
+                                final costoEstimado = FormatUtils.parseCurrency(value.trim());
+                                if (costoEstimado == null || costoEstimado <= 0) {
+                                  return 'Debe ser un número positivo';
+                                }
+                              }
+                              return null;
+                            },
+                          ),
+                        ],
                       ),
                     ),
-                    contentPadding: const EdgeInsets.all(16),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'El costo es requerido';
-                    }
-                    final costo = double.tryParse(value.trim());
-                    if (costo == null || costo <= 0) {
-                      return 'Debe ser un número positivo';
-                    }
-                    return null;
-                  },
+                  ],
                 ),
                 const SizedBox(height: 24),
                 // Responsable

@@ -29,6 +29,13 @@ class ObraMapper {
       costo: (json['costo'] ?? json['cost'] ?? 0.0) is int
           ? (json['costo'] ?? json['cost'] ?? 0).toDouble()
           : (json['costo'] ?? json['cost'] ?? 0.0) as double,
+      costoEstimado: () {
+        final value = json['costoEstimado'] ?? json['costo_estimado'] ?? json['estimatedCost'];
+        if (value == null) return null;
+        if (value is int) return value.toDouble();
+        if (value is double) return value;
+        return null;
+      }(),
       responsable: user_mapper.UserMapper.fromJsonToEntity(
         json['responsable'] as Map<String, dynamic>? ?? {},
       ),

@@ -222,6 +222,9 @@ class ObraDataSourceImpl implements ObraDataSource {
       location: data['location']?.toString() ?? '',
       city: data['city']?.toString() ?? '',
       costo: (data['costo'] ?? data['cost'] ?? 0.0).toDouble(),
+      costoEstimado: data['costoEstimado'] ?? data['costo_estimado'] ?? data['estimatedCost'] != null
+          ? (data['costoEstimado'] ?? data['costo_estimado'] ?? data['estimatedCost']).toDouble()
+          : null,
       responsable: _mapUserFromApi(responsableData),
       tareas: _mapTareasFromApi(tareasList),
       estado: data['estado']?.toString() ?? 'pendiente',
@@ -335,6 +338,7 @@ class ObraDataSourceImpl implements ObraDataSource {
         'city': obra.city,
         'responsable': obra.responsable.id, // Solo enviar el ID del responsable
         'costo': obra.costo,
+        if (obra.costoEstimado != null) 'costoEstimado': obra.costoEstimado,
       };
 
       // Si hay tareas asociadas, extraer solo los IDs y agregarlos al body

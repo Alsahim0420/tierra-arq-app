@@ -12,6 +12,7 @@ class ObraEntity {
     required this.tareas,
     required this.responsable,
     required this.costo,
+    this.costoEstimado,
     this.estado =
         'pendiente', // Estado de la obra: pendiente, en_proceso, finalizado
     this.fechaInicio,
@@ -27,6 +28,7 @@ class ObraEntity {
   final List<TareaEntity> tareas;
   final UserEntity responsable;
   final double costo;
+  final double? costoEstimado; // Costo estimado de la obra (opcional)
   final String estado; // Estado de la obra: pendiente, en_proceso, finalizado
   final DateTime? fechaInicio; // Fecha de inicio de la obra
   final DateTime? fechaFin; // Fecha de finalización planificada
