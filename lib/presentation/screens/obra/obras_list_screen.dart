@@ -294,197 +294,255 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final textTheme = Theme.of(context).textTheme;
 
+    // Estados locales para el modal
+    SortOption localSortOption = _sortOption;
+    Set<String> localSelectedEstados = Set<String>.from(_selectedEstados);
+    Set<String> localSelectedCities = Set<String>.from(_selectedCities);
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.85,
-        decoration: BoxDecoration(
-          color: isDark ? const Color(0xFF1B1B1B) : Colors.white,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(24),
-            topRight: Radius.circular(24),
-          ),
-        ),
-        child: Column(
-          children: [
-            // Header
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.1)
-                        : Colors.black.withValues(alpha: 0.1),
-                  ),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Filtros y Ordenamiento',
-                    style: textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white : Colors.black87,
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                  ),
-                ],
+      builder: (context) => StatefulBuilder(
+        builder: (BuildContext context, StateSetter setModalState) {
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.85,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1B1B1B) : Colors.white,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
               ),
             ),
-            // Contenido
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Ordenamiento
-                    Text(
-                      'Ordenar por',
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white : Colors.black87,
+            child: Column(
+              children: [
+                // Header
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : Colors.black.withValues(alpha: 0.1),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    ...SortOption.values
-                        .where((option) => option != SortOption.none)
-                        .map((option) {
-                          return RadioListTile<SortOption>(
-                            title: Text(_getSortOptionLabel(option)),
-                            value: option,
-                            groupValue: _sortOption,
-                            onChanged: (value) {
-                              setState(() {
-                                _sortOption = value!;
-                              });
-                            },
-                            activeColor: TierraApp.primary,
-                          );
-                        }),
-                    RadioListTile<SortOption>(
-                      title: const Text('Sin ordenamiento'),
-                      value: SortOption.none,
-                      groupValue: _sortOption,
-                      onChanged: (value) {
-                        setState(() {
-                          _sortOption = value!;
-                        });
-                      },
-                      activeColor: TierraApp.primary,
-                    ),
-                    const SizedBox(height: 24),
-                    // Filtros por estado
-                    Text(
-                      'Filtrar por estado',
-                      style: textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? Colors.white : Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        _FilterChip(
-                          label: 'Pendiente',
-                          isSelected: _selectedEstados.contains('pendiente'),
-                          onTap: () => _toggleEstadoFilter('pendiente'),
-                          color: Colors.orange,
-                          isDark: isDark,
-                        ),
-                        _FilterChip(
-                          label: 'En Proceso',
-                          isSelected:
-                              _selectedEstados.contains('en_proceso') ||
-                              _selectedEstados.contains('en progreso'),
-                          onTap: () => _toggleEstadoFilter('en_proceso'),
-                          color: Colors.blue,
-                          isDark: isDark,
-                        ),
-                        _FilterChip(
-                          label: 'Finalizado',
-                          isSelected: _selectedEstados.contains('finalizado'),
-                          onTap: () => _toggleEstadoFilter('finalizado'),
-                          color: Colors.green,
-                          isDark: isDark,
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-                    // Filtros por ciudad
-                    if (uniqueCities.isNotEmpty) ...[
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
                       Text(
-                        'Filtrar por ciudad',
-                        style: textTheme.titleMedium?.copyWith(
+                        'Filtros y Ordenamiento',
+                        style: textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w600,
                           color: isDark ? Colors.white : Colors.black87,
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        runSpacing: 8,
-                        children: uniqueCities.map((city) {
-                          return _FilterChip(
-                            label: city,
-                            isSelected: _selectedCities.contains(
-                              city.toLowerCase(),
-                            ),
-                            onTap: () => _toggleCityFilter(city),
-                            isDark: isDark,
-                          );
-                        }).toList(),
+                      IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
                       ),
                     ],
-                  ],
-                ),
-              ),
-            ),
-            // Botones de acción
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                border: Border(
-                  top: BorderSide(
-                    color: isDark
-                        ? Colors.white.withValues(alpha: 0.1)
-                        : Colors.black.withValues(alpha: 0.1),
                   ),
                 ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: _clearAllFilters,
-                      child: const Text('Limpiar'),
+                // Contenido
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Ordenamiento
+                        Text(
+                          'Ordenar por',
+                          style: textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ...SortOption.values
+                            .where((option) => option != SortOption.none)
+                            .map((option) {
+                              return RadioListTile<SortOption>(
+                                title: Text(_getSortOptionLabel(option)),
+                                value: option,
+                                groupValue: localSortOption,
+                                onChanged: (value) {
+                                  setModalState(() {
+                                    localSortOption = value!;
+                                  });
+                                },
+                                activeColor: TierraApp.primary,
+                              );
+                            }),
+                        RadioListTile<SortOption>(
+                          title: const Text('Sin ordenamiento'),
+                          value: SortOption.none,
+                          groupValue: localSortOption,
+                          onChanged: (value) {
+                            setModalState(() {
+                              localSortOption = value!;
+                            });
+                          },
+                          activeColor: TierraApp.primary,
+                        ),
+                        const SizedBox(height: 24),
+                        // Filtros por estado
+                        Text(
+                          'Filtrar por estado',
+                          style: textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white : Colors.black87,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _FilterChip(
+                              label: 'Pendiente',
+                              isSelected: localSelectedEstados.contains('pendiente'),
+                              onTap: () {
+                                setModalState(() {
+                                  if (localSelectedEstados.contains('pendiente')) {
+                                    localSelectedEstados.remove('pendiente');
+                                  } else {
+                                    localSelectedEstados.add('pendiente');
+                                  }
+                                });
+                              },
+                              color: Colors.orange,
+                              isDark: isDark,
+                            ),
+                            _FilterChip(
+                              label: 'En Proceso',
+                              isSelected:
+                                  localSelectedEstados.contains('en_proceso') ||
+                                  localSelectedEstados.contains('en progreso'),
+                              onTap: () {
+                                setModalState(() {
+                                  localSelectedEstados.remove('en progreso');
+                                  if (localSelectedEstados.contains('en_proceso')) {
+                                    localSelectedEstados.remove('en_proceso');
+                                  } else {
+                                    localSelectedEstados.add('en_proceso');
+                                  }
+                                });
+                              },
+                              color: Colors.blue,
+                              isDark: isDark,
+                            ),
+                            _FilterChip(
+                              label: 'Finalizado',
+                              isSelected: localSelectedEstados.contains('finalizado'),
+                              onTap: () {
+                                setModalState(() {
+                                  if (localSelectedEstados.contains('finalizado')) {
+                                    localSelectedEstados.remove('finalizado');
+                                  } else {
+                                    localSelectedEstados.add('finalizado');
+                                  }
+                                });
+                              },
+                              color: Colors.green,
+                              isDark: isDark,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 24),
+                        // Filtros por ciudad
+                        if (uniqueCities.isNotEmpty) ...[
+                          Text(
+                            'Filtrar por ciudad',
+                            style: textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: uniqueCities.map((city) {
+                              return _FilterChip(
+                                label: city,
+                                isSelected: localSelectedCities.contains(
+                                  city.toLowerCase(),
+                                ),
+                                onTap: () {
+                                  setModalState(() {
+                                    final cityLower = city.toLowerCase();
+                                    if (localSelectedCities.contains(cityLower)) {
+                                      localSelectedCities.remove(cityLower);
+                                    } else {
+                                      localSelectedCities.add(cityLower);
+                                    }
+                                  });
+                                },
+                                isDark: isDark,
+                              );
+                            }).toList(),
+                          ),
+                        ],
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: FilledButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: TierraApp.primary,
+                ),
+                // Botones de acción
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      top: BorderSide(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.1)
+                            : Colors.black.withValues(alpha: 0.1),
                       ),
-                      child: const Text('Aplicar'),
                     ),
                   ),
-                ],
-              ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            setModalState(() {
+                              localSortOption = SortOption.none;
+                              localSelectedEstados.clear();
+                              localSelectedCities.clear();
+                            });
+                          },
+                          child: const Text('Limpiar'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: FilledButton(
+                          onPressed: () {
+                            setState(() {
+                              _sortOption = localSortOption;
+                              _selectedEstados.clear();
+                              _selectedEstados.addAll(localSelectedEstados);
+                              _selectedCities.clear();
+                              _selectedCities.addAll(localSelectedCities);
+                            });
+                            Navigator.pop(context);
+                          },
+                          style: FilledButton.styleFrom(
+                            backgroundColor: TierraApp.primary,
+                          ),
+                          child: const Text('Aplicar'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
