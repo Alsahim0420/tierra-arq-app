@@ -1,5 +1,6 @@
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously, unnecessary_import
 
+import 'dart:developer' as developer;
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -15,6 +16,7 @@ import '../../bloc/obra/obra_event.dart';
 import '../../bloc/obra/obra_state.dart';
 import '../../app/app.dart';
 import '../../utils/format_utils.dart';
+import 'package:flutter/services.dart';
 import '../../widgets/tarea_info_row.dart';
 import '../../widgets/evidences_gallery.dart';
 import '../../../core/widgets/custom_snackbar.dart';
@@ -41,7 +43,7 @@ class TareaDetailModal extends StatefulWidget {
 
 class _TareaDetailModalState extends State<TareaDetailModal> {
   late String _selectedState;
-  final List<String> _estados = ['pendiente', 'en progreso', 'finalizado'];
+  final List<String> _estados = ['pendiente', 'en progreso', 'finalizado', 'estancado'];
   final ImagePicker _imagePicker = ImagePicker();
   CloudinaryService get _cloudinaryService => di.getIt<CloudinaryService>();
   List<String> _pendingEvidences = []; // Evidencias nuevas pendientes de subir
@@ -49,11 +51,15 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
   bool _userModifiedState = false; // Flag para saber si el usuario modificó el estado manualmente
   String? _lastKnownTareaState; // Último estado conocido de la tarea desde el backend
   bool _isUserSelecting = false; // Flag para indicar que el usuario está seleccionando un valor
+  // Comentado: Campo de costo
+  // bool _isEditingCosto = false; // Flag para saber si el usuario está editando el costo
   
   // Controladores para edición simple (cuando no hay obraId)
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
   late TextEditingController _durationController;
+  // Comentado: Campo de costo
+  // late TextEditingController _costoController; // Solo para admin
   // COMENTADO: _formKey solo se usa en _buildSimpleEditForm que está comentado
   // final _formKey = GlobalKey<FormState>();
 
@@ -79,6 +85,12 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
         normalized == 'finalizado') {
       return 'finalizado';
     }
+    if (cleanNormalized == 'estancado' ||
+        cleanNormalized == 'estancada' ||
+        cleanNormalized == 'stalled' ||
+        normalized == 'estancado') {
+      return 'estancado';
+    }
     // Si no coincide, devolver "pendiente" por defecto (siempre debe estar en _estados)
     return 'pendiente';
   }
@@ -92,6 +104,12 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
     _nameController = TextEditingController(text: widget.tarea.name);
     _descriptionController = TextEditingController(text: widget.tarea.description);
     _durationController = TextEditingController(text: widget.tarea.duration.toString());
+    // Comentado: Campo de costo
+    // _costoController = TextEditingController(
+    //   text: widget.tarea.costo != null 
+    //       ? '\$ ${FormatUtils.formatNumberWithSeparators(widget.tarea.costo!.toInt())}'
+    //       : '',
+    // );
     
     // NO refrescar las obras aquí para evitar reconstrucciones innecesarias
     // Solo refrescar cuando sea necesario (al abrir el modal)
@@ -117,6 +135,8 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
     _nameController.dispose();
     _descriptionController.dispose();
     _durationController.dispose();
+    // Comentado: Campo de costo
+    // _costoController.dispose();
     super.dispose();
   }
 
@@ -154,6 +174,32 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
         // Obtener la tarea actualizada del BLoC
         final tarea = _getUpdatedTarea(context);
         
+        // Comentado: Campo de costo
+        // Si la tarea del Bloc tiene un costo diferente al inicial, actualizar el controlador
+        // Solo si el controlador aún tiene el valor inicial (no ha sido modificado por el usuario)
+        // if (mounted && widget.isAdmin && !_isEditingCosto) {
+        //   final tareaCostoValue = tarea.costo ?? 0;
+        //   final currentCostoFormatted = _costoController.text.trim();
+        //   final currentCostoValue = FormatUtils.parseCurrency(currentCostoFormatted) ?? 0;
+        //   final initialCostoFormatted = widget.tarea.costo != null 
+        //       ? '\$ ${FormatUtils.formatNumberWithSeparators(widget.tarea.costo!.toInt())}'
+        //       : '';
+        //   final initialCostoValue = widget.tarea.costo ?? 0;
+        //   
+        //   // Si el costo del Bloc es diferente y el controlador tiene el valor inicial
+        //   if (tareaCostoValue != initialCostoValue && currentCostoFormatted == initialCostoFormatted && !_isEditingCosto) {
+        //     WidgetsBinding.instance.addPostFrameCallback((_) {
+        //       if (mounted && !_isEditingCosto) {
+        //         setState(() {
+        //           _costoController.text = tarea.costo != null 
+        //               ? '\$ ${FormatUtils.formatNumberWithSeparators(tarea.costo!.toInt())}'
+        //               : '';
+        //         });
+        //       }
+        //     });
+        //   }
+        // }
+        
         // Solo actualizar el estado desde el backend si:
         // 1. El usuario NO ha modificado el estado manualmente
         // 2. El estado de la tarea cambió desde el backend (diferente al último conocido)
@@ -183,7 +229,7 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
           _lastKnownTareaState = normalizedState;
         }
         
-        // Actualizar controladores de descripción y duración si es admin cuando la tarea se actualiza desde el backend
+        // Actualizar controladores de descripción, duración y costo si es admin cuando la tarea se actualiza desde el backend
         // Solo actualizar si el valor del backend es diferente y el usuario no está editando
         // COMENTADO: Solo actualizar si hay obraId (tareas independientes deshabilitadas)
         if (widget.isAdmin && widget.obraId != null && widget.obraId!.isNotEmpty) {
@@ -200,6 +246,25 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                 _durationController.text = tarea.duration.toString();
               });
             }
+            // Comentado: Campo de costo
+            // Actualizar costo si cambió en el backend
+            // if (mounted && !_isEditingCosto) {
+            //   final costoFormatted = tarea.costo != null 
+            //       ? '\$ ${FormatUtils.formatNumberWithSeparators(tarea.costo!.toInt())}'
+            //       : '';
+            //   final currentCostoFormatted = _costoController.text.trim();
+            //   
+            //   // Comparar valores numéricos para evitar problemas de formato
+            //   final backendCostoValue = tarea.costo ?? 0;
+            //   final currentCostoValue = FormatUtils.parseCurrency(currentCostoFormatted) ?? 0;
+            //   
+            //   // Solo actualizar si el valor numérico cambió Y el usuario NO está editando
+            //   if (backendCostoValue != currentCostoValue && !_isEditingCosto) {
+            //     setState(() {
+            //       _costoController.text = costoFormatted;
+            //     });
+            //   }
+            // }
           });
         }
 
@@ -535,6 +600,62 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                             contentPadding: const EdgeInsets.all(16),
                           ),
                         ),
+                        const SizedBox(height: 16),
+                        // Comentado: Campo de costo
+                        // Costo: solo para admin
+                        // Text(
+                        //   'Costo',
+                        //   style: textTheme.titleSmall?.copyWith(
+                        //     fontWeight: FontWeight.w500,
+                        //     color: Colors.white70,
+                        //   ),
+                        // ),
+                        // const SizedBox(height: 8),
+                        // TextFormField(
+                        //   controller: _costoController,
+                        //   enabled: true,
+                        //   keyboardType: const TextInputType.numberWithOptions(decimal: false),
+                        //   inputFormatters: [
+                        //     CurrencyInputFormatter(),
+                        //   ],
+                        //   onTap: () {
+                        //     // Marcar que el usuario está editando
+                        //     _isEditingCosto = true;
+                        //   },
+                        //   onChanged: (_) {
+                        //     // Marcar que el usuario está editando
+                        //     _isEditingCosto = true;
+                        //     // Forzar rebuild para actualizar el botón de guardar
+                        //     setState(() {});
+                        //   },
+                        //   style: textTheme.bodyMedium,
+                        //   decoration: InputDecoration(
+                        //     // hintText: '\$0',
+                        //     // hintStyle: textTheme.bodyMedium?.copyWith(
+                        //     //   color: Colors.white38,
+                        //     // ),
+                        //     filled: true,
+                        //     fillColor: const Color(0xFF1B1B1B),
+                        //     border: OutlineInputBorder(
+                        //       borderRadius: BorderRadius.circular(12),
+                        //       borderSide: BorderSide.none,
+                        //     ),
+                        //     enabledBorder: OutlineInputBorder(
+                        //       borderRadius: BorderRadius.circular(12),
+                        //       borderSide: BorderSide(
+                        //         color: Colors.white.withValues(alpha: 0.1),
+                        //       ),
+                        //     ),
+                        //     focusedBorder: OutlineInputBorder(
+                        //       borderRadius: BorderRadius.circular(12),
+                        //       borderSide: BorderSide(
+                        //         color: TierraApp.primary,
+                        //         width: 2,
+                        //       ),
+                        //     ),
+                        //     contentPadding: const EdgeInsets.all(16),
+                        //   ),
+                        // ),
                       ] else ...[
                         // Master solo puede ver la duración
                         if (tarea.duration > 0) ...[
@@ -545,7 +666,7 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                           ),
                         ],
                       ],
-                      if (tarea.duration > 0 &&
+                      if ((widget.isAdmin || tarea.duration > 0) &&
                           (tarea.evidences.isNotEmpty ||
                               tarea.assignedTo != null ||
                               widget.isAdmin))
@@ -851,18 +972,24 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                     final hasNewEvidences = validPendingEvidences.length > tarea.evidences.length ||
                         validPendingEvidences.any((e) => !tarea.evidences.contains(e));
                     
-                    // Verificar cambios en descripción y duración para admin
+                    // Verificar cambios en descripción, duración y costo para admin
                     final hasDescriptionChanges = widget.isAdmin && 
                                                   _descriptionController.text.trim() != tarea.description;
                     final hasDurationChanges = widget.isAdmin && 
                                               (int.tryParse(_durationController.text.trim()) ?? 0) != tarea.duration;
+                    // Comentado: Campo de costo
+                    // final hasCostoChanges = widget.isAdmin && 
+                    //                       _hasCostoChanges(tarea);
                     
                     // Ya no incluimos observación en canSave, se maneja por separado
                     final canSave = (hasChanges || 
                                     hasEvidenceChanges || 
                                     hasNewEvidences || 
                                     hasDescriptionChanges || 
-                                    hasDurationChanges) && 
+                                    hasDurationChanges ||
+                                    // Comentado: Campo de costo
+                                    // hasCostoChanges
+                                    false) && 
                                    !_isUploading;
                     
                     return FilledButton(
@@ -1217,6 +1344,23 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
     return newUrls.isNotEmpty;
   }
 
+  // Comentado: Campo de costo
+  // bool _hasCostoChanges(TareaEntity tarea) {
+  //   final costoFromInput = FormatUtils.parseCurrency(_costoController.text.trim());
+  //   // Comparar si el costo cambió
+  //   if (costoFromInput == null && tarea.costo == null) {
+  //     return false; // Ambos son null, no hay cambio
+  //   }
+  //   if (costoFromInput == null && tarea.costo != null) {
+  //     return true; // Se eliminó el costo
+  //   }
+  //   if (costoFromInput != null && tarea.costo == null) {
+  //     return true; // Se agregó un costo
+  //   }
+  //   // Comparar valores numéricos
+  //   return (costoFromInput ?? 0) != (tarea.costo ?? 0);
+  // }
+
   Future<void> _pickImageFromGallery(BuildContext context) async {
     try {
       // Solicitar permiso de galería
@@ -1365,11 +1509,14 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
     // Ya no manejamos observación aquí, se maneja en el modal separado
     final evidenceChanged = _hasEvidenceChanges(tarea);
     
-    // Verificar si admin modificó descripción o duración
+    // Verificar si admin modificó descripción, duración o costo
     final descriptionChanged = widget.isAdmin && 
                                _descriptionController.text.trim() != tarea.description;
     final durationChanged = widget.isAdmin && 
                             (int.tryParse(_durationController.text.trim()) ?? 0) != tarea.duration;
+    // Comentado: Campo de costo
+    // final costoChanged = widget.isAdmin && _hasCostoChanges(tarea);
+    final costoChanged = false;
     
     // Filtrar evidencias válidas (solo URLs)
     final validPendingEvidences = _pendingEvidences
@@ -1434,11 +1581,13 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
     } else {
     */
       // Si hay obraId
-      // Si es admin y modificó descripción o duración, usar UpdateTarea para actualizar todo junto
-      if (widget.isAdmin && (descriptionChanged || durationChanged || stateChanged || evidenceChanged)) {
+      // Si es admin y modificó descripción, duración o costo, usar UpdateTarea para actualizar todo junto
+      if (widget.isAdmin && (descriptionChanged || durationChanged || costoChanged || stateChanged || evidenceChanged)) {
         // Admin puede actualizar todo junto usando UpdateTarea
         final duration = int.tryParse(_durationController.text.trim()) ?? tarea.duration;
         final description = _descriptionController.text.trim();
+        // Comentado: Campo de costo
+        // final costo = FormatUtils.parseCurrency(_costoController.text.trim());
         
         // Determinar el estado final
         String finalState = _selectedState;
@@ -1454,6 +1603,8 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
           assignedTo: tarea.assignedTo,
           observation: tarea.observation,
           obraTareaId: tarea.obraTareaId, // Mantener obraTareaId original
+          // Comentado: Campo de costo
+          costo: tarea.costo, // Mantener el costo original
         );
         
         tareaBloc.add(UpdateTarea(updatedTarea, obraId));
@@ -1494,7 +1645,14 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
         
         // 2. Si cambió el estado manualmente O necesita auto-actualización por evidencias
         if (stateChanged) {
+          developer.log('🔄 [UI] Estado cambió manualmente', name: 'TareaStateFlow');
+          developer.log('🔄 [UI] Estado anterior: ${_normalizeState(tarea.state)}', name: 'TareaStateFlow');
+          developer.log('🔄 [UI] Estado nuevo: $_selectedState', name: 'TareaStateFlow');
+          developer.log('🔄 [UI] obraId: $obraId', name: 'TareaStateFlow');
+          developer.log('🔄 [UI] tareaId: ${tarea.id}', name: 'TareaStateFlow');
+          
           // Usuario cambió el estado manualmente
+          developer.log('🔄 [UI] Disparando evento UpdateTareaState...', name: 'TareaStateFlow');
           tareaBloc.add(
             UpdateTareaState(
               obraId,
@@ -1506,14 +1664,30 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
           // Esperar a que termine
           try {
             if (!mounted) return;
-            await tareaBloc.stream
+            developer.log('🔄 [UI] Esperando respuesta del BLoC...', name: 'TareaStateFlow');
+            final newState = await tareaBloc.stream
                 .where((state) => state is! TareaLoading)
                 .timeout(const Duration(seconds: 10))
                 .first;
+            
+            developer.log('🔄 [UI] Respuesta recibida del BLoC', name: 'TareaStateFlow');
+            if (newState is TareaLoaded) {
+              developer.log('🔄 [UI] Estado es TareaLoaded con ${newState.tareas.length} tareas', name: 'TareaStateFlow');
+              final updatedTarea = newState.tareas.firstWhere(
+                (t) => t.id == tarea.id,
+                orElse: () => tarea,
+              );
+              developer.log('🔄 [UI] Tarea actualizada - id: ${updatedTarea.id}', name: 'TareaStateFlow');
+              developer.log('🔄 [UI] Tarea actualizada - state: ${updatedTarea.state}', name: 'TareaStateFlow');
+            } else if (newState is TareaError) {
+              developer.log('❌ [UI] Error recibido del BLoC: ${newState.message}', name: 'TareaStateFlow');
+            }
           } catch (e) {
+            developer.log('❌ [UI] Error esperando respuesta del BLoC: $e', name: 'TareaStateFlow');
             if (!mounted) return;
           }
         } else if (needsAutoStateUpdate) {
+          developer.log('🔄 [UI] Auto-actualización de estado por evidencias', name: 'TareaStateFlow');
           // Auto-actualizar a "finalizado" solo si hay evidencias nuevas Y el usuario NO cambió el estado
           // Solo para master
           
@@ -1543,9 +1717,14 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
     // 3. La observación se maneja en un modal separado, no aquí
 
     if (mounted) {
+      developer.log('🔄 [UI] Cerrando modal y actualizando estados de obras...', name: 'TareaStateFlow');
       Navigator.pop(context);
-      // Refrescar las obras para obtener los datos actualizados
-      obraBloc.add(const LoadObras());
+      
+      // Primero actualizar los estados de las obras basándose en las tareas
+      developer.log('🔄 [UI] Disparando UpdateObrasEstados en ObraBloc...', name: 'TareaStateFlow');
+      obraBloc.add(const UpdateObrasEstados());
+      // UpdateObrasEstados automáticamente recarga las obras después de actualizar
+      developer.log('🔄 [UI] UpdateObrasEstados disparado (recargará obras automáticamente)', name: 'TareaStateFlow');
     }
   }
 }

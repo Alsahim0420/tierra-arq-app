@@ -12,6 +12,7 @@ class TareaEntity {
     this.assignedTo,
     this.observation,
     this.obraTareaId,
+    this.costo,
   });
 
   final String id;
@@ -23,5 +24,6 @@ class TareaEntity {
   final UserEntity? assignedTo;
   final String? observation;
   final String? obraTareaId; // ID de la relación obra-tarea (obra_tarea_id del API)
+  final double? costo; // Costo de la tarea (solo para admin)
 }
 

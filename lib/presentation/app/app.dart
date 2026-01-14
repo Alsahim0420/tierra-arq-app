@@ -5,6 +5,7 @@ import '../bloc/auth/auth_bloc.dart';
 import '../bloc/auth/auth_event.dart';
 import '../bloc/obra/obra_bloc.dart';
 import '../bloc/tarea/tarea_bloc.dart';
+import '../bloc/dashboard/dashboard_bloc.dart';
 import '../bloc/theme/theme_bloc.dart';
 import '../bloc/theme/theme_event.dart';
 import '../bloc/theme/theme_state.dart';
@@ -112,6 +113,7 @@ class TierraApp extends StatelessWidget {
         ),
         BlocProvider(create: (_) => di.getIt<ObraBloc>()),
         BlocProvider(create: (_) => di.getIt<TareaBloc>()),
+        BlocProvider(create: (_) => di.getIt<DashboardBloc>()),
         BlocProvider(create: (_) => di.getIt<UserBloc>()),
       ],
       child: BlocBuilder<ThemeBloc, ThemeState>(

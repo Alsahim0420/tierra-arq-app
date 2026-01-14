@@ -1,3 +1,4 @@
+import 'dart:io';
 import '../../core/repositories/obra_repository.dart';
 import '../../core/datasources/obra_datasource.dart';
 import '../../core/entities/obra_entity.dart';
@@ -41,5 +42,15 @@ class ObraRepositoryImpl implements ObraRepository {
   @override
   Future<void> deleteObra(String id) async {
     return await _dataSource.deleteObra(id);
+  }
+
+  @override
+  Future<ObraEntity> processDocument(File file) async {
+    return await _dataSource.processDocument(file);
+  }
+
+  @override
+  Future<Map<String, int>> updateObrasEstados() async {
+    return await _dataSource.updateObrasEstados();
   }
 }

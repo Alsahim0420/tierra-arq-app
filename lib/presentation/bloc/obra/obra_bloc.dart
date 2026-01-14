@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/usecases/obra_usecases.dart';
 import '../../../core/entities/obra_entity.dart';
@@ -11,6 +12,7 @@ class ObraBloc extends Bloc<ObraEvent, ObraState> {
   final CreateObraUseCase createObraUseCase;
   final UpdateObraUseCase updateObraUseCase;
   final DeleteObraUseCase deleteObraUseCase;
+  final UpdateObrasEstadosUseCase updateObrasEstadosUseCase;
 
   ObraBloc({
     required this.getObrasUseCase,
@@ -19,6 +21,7 @@ class ObraBloc extends Bloc<ObraEvent, ObraState> {
     required this.createObraUseCase,
     required this.updateObraUseCase,
     required this.deleteObraUseCase,
+    required this.updateObrasEstadosUseCase,
   }) : super(const ObraInitial()) {
     on<LoadObras>(_onLoadObras);
     on<LoadObrasFinalizadas>(_onLoadObrasFinalizadas);
@@ -28,6 +31,7 @@ class ObraBloc extends Bloc<ObraEvent, ObraState> {
     on<DeleteObra>(_onDeleteObra);
     on<SelectObra>(_onSelectObra);
     on<ClearSelection>(_onClearSelection);
+    on<UpdateObrasEstados>(_onUpdateObrasEstados);
   }
 
   Future<void> _onLoadObras(LoadObras event, Emitter<ObraState> emit) async {
@@ -46,8 +50,13 @@ class ObraBloc extends Bloc<ObraEvent, ObraState> {
         }
       }
       final uniqueObras = deduplicatedObras.values.toList();
+      
+      // Log del estado de las tareas en cada obra
+      for (final obra in uniqueObras) {
+      }
+      
       emit(ObraLoaded(obras: uniqueObras));
-    } catch (e) {
+    } catch (e, stackTrace) {
       emit(ObraError('Error al cargar obras: $e'));
     }
   }
@@ -210,6 +219,9 @@ class ObraBloc extends Bloc<ObraEvent, ObraState> {
     final currentState = state;
     if (currentState is ObraLoaded) {
       emit(ObraLoaded(obras: currentState.obras, selectedObra: event.obra));
+    } else if (currentState is ObrasFinalizadasLoaded) {
+      // ObrasFinalizadasLoaded no tiene selectedObra, solo mantener las obras
+      emit(ObrasFinalizadasLoaded(obras: currentState.obras));
     }
   }
 
@@ -217,6 +229,29 @@ class ObraBloc extends Bloc<ObraEvent, ObraState> {
     final currentState = state;
     if (currentState is ObraLoaded) {
       emit(ObraLoaded(obras: currentState.obras, selectedObra: null));
+    } else if (currentState is ObrasFinalizadasLoaded) {
+      // ObrasFinalizadasLoaded no tiene selectedObra, solo mantener las obras
+      emit(ObrasFinalizadasLoaded(obras: currentState.obras));
+    }
+  }
+
+  Future<void> _onUpdateObrasEstados(
+    UpdateObrasEstados event,
+    Emitter<ObraState> emit,
+  ) async {
+    developer.log('🔄 [ObraBloc] _onUpdateObrasEstados iniciado', name: 'TareaStateFlow');
+    try {
+      developer.log('🔄 [ObraBloc] Llamando a updateObrasEstadosUseCase...', name: 'TareaStateFlow');
+      final resultado = await updateObrasEstadosUseCase();
+      developer.log('🔄 [ObraBloc] Estados actualizados - Total: ${resultado['total']}, Actualizadas: ${resultado['actualizadas']}, No actualizadas: ${resultado['noActualizadas']}', name: 'TareaStateFlow');
+      
+      // Después de actualizar los estados, recargar las obras para reflejar los cambios
+      developer.log('🔄 [ObraBloc] Recargando obras después de actualizar estados...', name: 'TareaStateFlow');
+      add(const LoadObras());
+    } catch (e, stackTrace) {
+      developer.log('❌ [ObraBloc] Error en _onUpdateObrasEstados: $e', name: 'TareaStateFlow');
+      developer.log('❌ [ObraBloc] Stack trace: $stackTrace', name: 'TareaStateFlow');
+      emit(ObraError('Error al actualizar estados de obras: $e'));
     }
   }
 }

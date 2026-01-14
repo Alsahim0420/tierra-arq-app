@@ -2,15 +2,19 @@ import 'package:get_it/get_it.dart';
 import '../../core/datasources/user_datasource.dart';
 import '../../core/datasources/obra_datasource.dart';
 import '../../core/datasources/tarea_datasource.dart';
+import '../../core/datasources/dashboard_datasource.dart';
 import '../../data/datasources/user_datasource_impl.dart';
 import '../../data/datasources/obra_datasource_impl.dart';
 import '../../data/datasources/tarea_datasource_impl.dart';
+import '../../data/datasources/dashboard_datasource_impl.dart';
 import '../../data/repositories/user_repository_impl.dart';
 import '../../data/repositories/obra_repository_impl.dart';
 import '../../data/repositories/tarea_repository_impl.dart';
+import '../../data/repositories/dashboard_repository_impl.dart';
 import '../../core/repositories/user_repository.dart';
 import '../../core/repositories/obra_repository.dart';
 import '../../core/repositories/tarea_repository.dart';
+import '../../core/repositories/dashboard_repository.dart';
 import '../../core/services/token_storage_service.dart';
 import '../../core/services/http_service.dart';
 import '../../core/services/theme_service.dart';
@@ -18,6 +22,7 @@ import '../../core/services/cloudinary_service.dart';
 import '../../domain/usecases/auth_usecases.dart';
 import '../../domain/usecases/obra_usecases.dart';
 import '../../domain/usecases/tarea_usecases.dart';
+import '../../domain/usecases/dashboard_usecases.dart';
 import '../../domain/usecases/user/get_user_usecase.dart';
 import '../../domain/usecases/user/get_all_users_usecase.dart';
 import '../../domain/usecases/user/get_master_users_usecase.dart';
@@ -25,6 +30,7 @@ import '../../domain/usecases/user/create_user_usecase.dart';
 import '../../presentation/bloc/auth/auth_bloc.dart';
 import '../../presentation/bloc/obra/obra_bloc.dart';
 import '../../presentation/bloc/tarea/tarea_bloc.dart';
+import '../../presentation/bloc/dashboard/dashboard_bloc.dart';
 import '../../presentation/bloc/theme/theme_bloc.dart';
 import '../../presentation/bloc/user/user_bloc.dart';
 
@@ -67,6 +73,11 @@ Future<void> configureDependencies() async {
       httpService: getIt<HttpService>(),
     ),
   );
+  getIt.registerLazySingleton<DashboardDataSource>(
+    () => DashboardDataSourceImpl(
+      httpService: getIt<HttpService>(),
+    ),
+  );
 
   // --- REPOSITORIES ---
   getIt.registerLazySingleton<UserRepository>(
@@ -77,6 +88,9 @@ Future<void> configureDependencies() async {
   );
   getIt.registerLazySingleton<TareaRepository>(
     () => TareaRepositoryImpl(getIt<TareaDataSource>()),
+  );
+  getIt.registerLazySingleton<DashboardRepository>(
+    () => DashboardRepositoryImpl(getIt<DashboardDataSource>()),
   );
 
   // --- USE CASES ---
@@ -114,6 +128,8 @@ Future<void> configureDependencies() async {
   );
   getIt.registerLazySingleton(() => CreateObraUseCase(getIt<ObraRepository>()));
   getIt.registerLazySingleton(() => UpdateObraUseCase(getIt<ObraRepository>()));
+  getIt.registerLazySingleton(() => ProcessDocumentUseCase(getIt<ObraRepository>()));
+  getIt.registerLazySingleton(() => UpdateObrasEstadosUseCase(getIt<ObraRepository>()));
   getIt.registerLazySingleton(() => DeleteObraUseCase(getIt<ObraRepository>()));
 
   // Tarea
@@ -146,6 +162,11 @@ Future<void> configureDependencies() async {
     () => DeleteTareaUseCase(getIt<TareaRepository>()),
   );
 
+  // Dashboard
+  getIt.registerLazySingleton(
+    () => GetDashboardUseCase(getIt<DashboardRepository>()),
+  );
+
   // --- BLoCs ---
   getIt.registerFactory(
     () => AuthBloc(
@@ -161,6 +182,7 @@ Future<void> configureDependencies() async {
       getObrasByResponsableUseCase: getIt<GetObrasByResponsableUseCase>(),
       createObraUseCase: getIt<CreateObraUseCase>(),
       updateObraUseCase: getIt<UpdateObraUseCase>(),
+      updateObrasEstadosUseCase: getIt<UpdateObrasEstadosUseCase>(),
       deleteObraUseCase: getIt<DeleteObraUseCase>(),
     ),
   );
@@ -186,6 +208,11 @@ Future<void> configureDependencies() async {
       getIt<GetUserUseCase>(),
       getIt<GetAllUsersUseCase>(),
       getIt<CreateUserUseCase>(),
+    ),
+  );
+  getIt.registerFactory(
+    () => DashboardBloc(
+      getDashboardUseCase: getIt<GetDashboardUseCase>(),
     ),
   );
 }

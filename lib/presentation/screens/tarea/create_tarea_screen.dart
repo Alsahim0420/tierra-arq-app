@@ -27,7 +27,7 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
   late TextEditingController _durationController;
   late TextEditingController _observationController;
   late String _selectedState;
-  final List<String> _estados = ['pendiente', 'en progreso', 'finalizado'];
+  final List<String> _estados = ['pendiente', 'en progreso', 'finalizado', 'estancado'];
   bool _isCreating = false;
   bool _isEditing = false;
   TareaEntity? _createdTarea;

@@ -73,3 +73,7 @@ class SelectObra extends ObraEvent {
 class ClearSelection extends ObraEvent {
   const ClearSelection();
 }
+
+class UpdateObrasEstados extends ObraEvent {
+  const UpdateObrasEstados();
+}

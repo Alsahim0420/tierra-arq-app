@@ -1,7 +1,10 @@
 // ignore_for_file: use_build_context_synchronously, unused_catch_stack, duplicate_ignore, deprecated_member_use, prefer_final_fields
 
+import 'dart:io';
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../../core/entities/obra_entity.dart';
 import '../../../core/entities/user_entity.dart';
 import '../../../core/entities/tarea_entity.dart';
@@ -12,6 +15,7 @@ import '../../bloc/obra/obra_event.dart';
 import '../../app/app.dart';
 import '../../../core/injection/injection_container.dart' as di;
 import '../../../domain/usecases/user/get_master_users_usecase.dart';
+import '../../../domain/usecases/obra_usecases.dart';
 import '../../utils/format_utils.dart';
 import '../tarea/create_tarea_screen.dart';
 import '../../bloc/obra/obra_state.dart';
@@ -35,8 +39,15 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
   UserEntity? _selectedResponsable;
   final List<UserEntity> _availableUsers = [];
   
+  // Fecha de entrega de la obra
+  DateTime? _fechaEntrega;
+  
   // Lista de tareas temporales que se agregarán a la obra al crearla
   final List<TareaEntity> _tareasToAdd = [];
+  
+  // Obra procesada desde archivo
+  ObraEntity? _processedObra;
+  bool _isProcessingDocument = false;
   
   int _usersPage = 1;
   final int _limit = 10;
@@ -139,6 +150,191 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
       });
       _loadUsers();
     }
+  }
+
+  Future<void> _selectAndProcessFile() async {
+    try {
+      // Seleccionar archivo
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.any,
+        allowMultiple: false,
+      );
+
+      if (result == null || result.files.isEmpty) {
+        return; // Usuario canceló
+      }
+
+      final filePath = result.files.single.path;
+      if (filePath == null) {
+        CustomSnackBar.showError(
+          context,
+          message: 'No se pudo obtener la ruta del archivo',
+        );
+        return;
+      }
+
+      final file = File(filePath);
+      
+      // Obtener información del archivo para debugging
+      final fileName = file.path.split('/').last;
+      final fileExtension = fileName.split('.').last.toLowerCase();
+      final fileSize = await file.length();
+      final fileExists = await file.exists();
+      
+      developer.log('📄 [FilePicker] Archivo seleccionado:', name: 'TareaStateFlow');
+      developer.log('📄 [FilePicker] Nombre: $fileName', name: 'TareaStateFlow');
+      developer.log('📄 [FilePicker] Extensión: $fileExtension', name: 'TareaStateFlow');
+      developer.log('📄 [FilePicker] Tamaño: $fileSize bytes (${(fileSize / 1024).toStringAsFixed(2)} KB)', name: 'TareaStateFlow');
+      developer.log('📄 [FilePicker] Ruta completa: $filePath', name: 'TareaStateFlow');
+      developer.log('📄 [FilePicker] Archivo existe: $fileExists', name: 'TareaStateFlow');
+      
+      if (!fileExists) {
+        if (mounted) {
+          CustomSnackBar.showError(
+            context,
+            message: 'El archivo seleccionado no existe',
+          );
+        }
+        return;
+      }
+
+      // Mostrar diálogo de carga
+      if (!mounted) return;
+      _showProcessingDialog();
+
+      setState(() {
+        _isProcessingDocument = true;
+      });
+
+      // Procesar documento
+      ProcessDocumentUseCase processDocumentUseCase;
+      try {
+        processDocumentUseCase = di.getIt<ProcessDocumentUseCase>();
+      } catch (e) {
+        if (mounted) {
+          Navigator.pop(context); // Cerrar diálogo
+          CustomSnackBar.showError(
+            context,
+            message: 'Error al inicializar servicio de procesamiento',
+          );
+        }
+        return;
+      }
+
+      final obra = await processDocumentUseCase(file);
+
+      if (mounted) {
+        Navigator.pop(context); // Cerrar diálogo de carga
+
+        setState(() {
+          _processedObra = obra;
+          _isProcessingDocument = false;
+        });
+
+        // Pre-llenar formulario
+        _titleController.text = obra.title;
+        _descriptionController.text = obra.description;
+        _locationController.text = obra.location;
+        _cityController.text = obra.city;
+        _costoController.text = FormatUtils.formatCurrency(obra.costo);
+        if (obra.costoEstimado != null) {
+          _costoEstimadoController.text = FormatUtils.formatCurrency(obra.costoEstimado!);
+        }
+        
+        // Pre-llenar fecha de entrega si existe
+        if (obra.fechaEntrega != null) {
+          setState(() {
+            _fechaEntrega = obra.fechaEntrega;
+          });
+        }
+
+        // Pre-seleccionar responsable si existe
+        if (obra.responsable.id.isNotEmpty) {
+          final responsableIndex = _availableUsers.indexWhere(
+            (u) => u.id == obra.responsable.id,
+          );
+          if (responsableIndex >= 0) {
+            _selectedResponsable = _availableUsers[responsableIndex];
+          }
+        }
+
+        // Agregar tareas procesadas
+        setState(() {
+          _tareasToAdd.clear();
+          _tareasToAdd.addAll(obra.tareas);
+        });
+
+        CustomSnackBar.showSuccess(
+          context,
+          message: 'Documento procesado exitosamente. ${obra.tareas.length} tareas cargadas.',
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Cerrar diálogo si está abierto
+        setState(() {
+          _isProcessingDocument = false;
+        });
+        CustomSnackBar.showError(
+          context,
+          message: 'Error al procesar documento: ${e.toString()}',
+        );
+      }
+    }
+  }
+
+  void _showProcessingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => WillPopScope(
+        onWillPop: () async => false, // No permitir cerrar
+        child: Dialog(
+          backgroundColor: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1B1B1B)
+              : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const CircularProgressIndicator(),
+                const SizedBox(height: 24),
+                Text(
+                  'Subiendo archivo...',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Por favor espera, esto puede demorar unos momentos.',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white70
+                            : Colors.black54,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'El servidor está procesando tu documento...',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Theme.of(context).brightness == Brightness.dark
+                            ? Colors.white54
+                            : Colors.black38,
+                      ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _openCreateTareaScreen() async {
@@ -384,6 +580,42 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
     );
   }
 
+  Widget _buildSummaryRow(
+    BuildContext context,
+    TextTheme textTheme,
+    bool isDark,
+    String label,
+    String value,
+    IconData icon,
+  ) {
+    return Row(
+      children: [
+        Icon(
+          icon,
+          size: 20,
+          color: isDark ? Colors.white70 : Colors.black54,
+        ),
+        const SizedBox(width: 12),
+        Text(
+          '$label: ',
+          style: textTheme.bodyMedium?.copyWith(
+            fontWeight: FontWeight.w500,
+            color: isDark ? Colors.white70 : Colors.black54,
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.white : Colors.black87,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   Future<void> _createObra(BuildContext context) async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -403,6 +635,21 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
         message: 'Debes seleccionar un responsable',
       );
       return;
+    }
+
+    // Validar fecha de entrega si está seleccionada
+    if (_fechaEntrega != null) {
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final selectedDate = DateTime(_fechaEntrega!.year, _fechaEntrega!.month, _fechaEntrega!.day);
+      
+      if (selectedDate.isBefore(today) || selectedDate.isAtSameMomentAs(today)) {
+        CustomSnackBar.showError(
+          context,
+          message: 'La fecha de entrega debe ser posterior al día actual',
+        );
+        return;
+      }
     }
 
     if (!mounted) return;
@@ -426,10 +673,18 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
         throw Exception('Algunas tareas no tienen ID. Por favor, asegúrate de que todas las tareas estén creadas correctamente.');
       }
 
-      // Crear la entidad de obra con las tareas ya creadas (con sus IDs)
-      // El backend automáticamente asociará las tareas a la obra
+      // Crear la entidad de obra con los datos del formulario
+      // Si hay una obra procesada, usar su ID para actualizar
+      final obraId = _processedObra?.id ?? '';
+      
+      // Si es una obra nueva (sin ID), establecer fechaInicio como fecha actual
+      // Si es una actualización (con ID), mantener la fechaInicio existente o usar la de la obra procesada
+      final fechaInicio = obraId.isEmpty 
+          ? DateTime.now() // Nueva obra: fecha actual
+          : (_processedObra?.fechaInicio); // Actualización: mantener fecha existente
+      
       final newObra = ObraEntity(
-        id: '', // El backend asignará el ID
+        id: obraId, // Si viene de archivo procesado, tiene ID; si no, será vacío
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         location: _locationController.text.trim(),
@@ -437,14 +692,21 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
         responsable: _selectedResponsable!,
         costo: costo,
         costoEstimado: costoEstimado,
+        fechaInicio: fechaInicio, // Fecha de inicio (actual para nuevas, existente para actualizaciones)
+        fechaEntrega: _fechaEntrega, // Fecha de entrega seleccionada
         tareas: _tareasToAdd, // Tareas ya creadas con sus IDs - el backend las asociará
       );
 
-      // Enviar el evento CreateObra al Bloc para que maneje la creación
-      // El Bloc se encargará de llamar al UseCase y actualizar el estado
-      obraBloc.add(CreateObra(newObra));
+      // Si la obra ya tiene ID (fue procesada desde archivo), actualizar
+      // Si no tiene ID, crear nueva
+      if (obraId.isNotEmpty) {
+        obraBloc.add(UpdateObra(newObra));
+      } else {
+        obraBloc.add(CreateObra(newObra));
+      }
 
-      // Esperar a que el Bloc procese la creación
+      // Esperar a que el Bloc procese la creación o actualización
+      final isUpdate = obraId.isNotEmpty;
       try {
         // Esperar a que el estado cambie después de enviar el evento
         // El Bloc primero emite ObraLoading, luego ObraLoaded o ObraError
@@ -456,30 +718,29 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
           if (state is ObraError) {
             throw Exception(state.message);
           }
-          // Si el estado es ObraLoaded, la obra se creó correctamente
+          // Si el estado es ObraLoaded, la obra se creó/actualizó correctamente
         });
       } catch (e) {
-        // Verificar el estado actual por si el timeout ocurrió pero la obra se creó
+        // Verificar el estado actual por si el timeout ocurrió pero la obra se procesó
         final currentState = obraBloc.state;
         if (currentState is ObraError) {
           throw Exception(currentState.message);
         } else if (e.toString().contains('TimeoutException')) {
-          throw Exception('Timeout al crear obra. Por favor, verifica tu conexión e intenta nuevamente.');
+          throw Exception('Timeout al ${isUpdate ? 'actualizar' : 'crear'} obra. Por favor, verifica tu conexión e intenta nuevamente.');
         } else {
           rethrow;
         }
       }
 
       if (mounted) {
-        // La obra ya fue agregada al estado por el Bloc en _onCreateObra
+        // La obra ya fue agregada/actualizada al estado por el Bloc
         // No es necesario recargar todas las obras, evitando duplicaciones
-        // El Bloc ya agregó la obra creada a la lista con deduplicación
         
         // Mostrar resultado exitoso
         Navigator.pop(context, true);
         CustomSnackBar.showSuccess(
           context,
-          message: 'Obra creada correctamente con ${_tareasToAdd.length} tarea${_tareasToAdd.length > 1 ? 's' : ''} asociada${_tareasToAdd.length > 1 ? 's' : ''}',
+          message: 'Obra ${isUpdate ? 'actualizada' : 'creada'} correctamente con ${_tareasToAdd.length} tarea${_tareasToAdd.length > 1 ? 's' : ''} asociada${_tareasToAdd.length > 1 ? 's' : ''}',
         );
       }
     } catch (e) {
@@ -532,6 +793,215 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Botón de subida de archivo
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: TierraApp.primary.withValues(alpha: 0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: _isProcessingDocument ? null : _selectAndProcessFile,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 16,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              TierraApp.primary,
+                              TierraApp.primary.withValues(alpha: 0.8),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: TierraApp.primary.withValues(alpha: 0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.upload_file_rounded,
+                              color: Colors.black,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Subir Archivo de Obra',
+                              style: textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'O sube un archivo para procesar automáticamente los datos de la obra',
+                  style: textTheme.bodySmall?.copyWith(
+                    color: isDark ? Colors.white54 : Colors.black54,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                // Tarjeta de resumen si hay obra procesada
+                if (_processedObra != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF2B2B2B) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: Colors.green.withValues(alpha: 0.3),
+                        width: 2,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.check_circle,
+                              color: Colors.green,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Obra Procesada Exitosamente',
+                                style: textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.green,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        _buildSummaryRow(
+                          context,
+                          textTheme,
+                          isDark,
+                          'Título',
+                          _processedObra!.title,
+                          Icons.title,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildSummaryRow(
+                          context,
+                          textTheme,
+                          isDark,
+                          'Costo',
+                          FormatUtils.formatCurrency(_processedObra!.costo),
+                          Icons.attach_money,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildSummaryRow(
+                          context,
+                          textTheme,
+                          isDark,
+                          'Tareas',
+                          '${_processedObra!.tareas.length} tareas procesadas',
+                          Icons.task_alt,
+                        ),
+                        const SizedBox(height: 16),
+                        ExpansionTile(
+                          tilePadding: EdgeInsets.zero,
+                          childrenPadding: const EdgeInsets.only(bottom: 8),
+                          title: Text(
+                            'Ver Tareas (${_processedObra!.tareas.length})',
+                            style: textTheme.bodyMedium?.copyWith(
+                              fontWeight: FontWeight.w500,
+                              color: TierraApp.primary,
+                            ),
+                          ),
+                          children: _processedObra!.tareas.take(10).map((tarea) {
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 8),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.black.withValues(alpha: 0.3)
+                                    : Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          tarea.name,
+                                          style: textTheme.bodySmall?.copyWith(
+                                            fontWeight: FontWeight.w500,
+                                            color: isDark
+                                                ? Colors.white
+                                                : Colors.black87,
+                                          ),
+                                        ),
+                                        if (tarea.costo != null) ...[
+                                          const SizedBox(height: 4),
+                                          Text(
+                                            FormatUtils.formatCurrency(tarea.costo!),
+                                            style: textTheme.bodySmall?.copyWith(
+                                              color: isDark
+                                                  ? Colors.white54
+                                                  : Colors.black54,
+                                            ),
+                                          ),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: FormatUtils.getStateColor(tarea.state)
+                                          .withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      FormatUtils.formatStateText(tarea.state),
+                                      style: textTheme.bodySmall?.copyWith(
+                                        color: FormatUtils.getStateColor(tarea.state),
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
                 // Título
                 Text(
                   'Título',
@@ -765,11 +1235,12 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                               color: isDark ? Colors.white : Colors.black87,
                             ),
                             decoration: InputDecoration(
-                              prefixText: '\$ ',
-                              prefixStyle: textTheme.bodyMedium?.copyWith(
-                                color: isDark ? Colors.white70 : Colors.black87,
-                                fontWeight: FontWeight.w500,
-                              ),
+                              // COMENTADO: prefixText duplicado - CurrencyInputFormatter ya agrega el "$ "
+                              // prefixText: '\$ ',
+                              // prefixStyle: textTheme.bodyMedium?.copyWith(
+                              //   color: isDark ? Colors.white70 : Colors.black87,
+                              //   fontWeight: FontWeight.w500,
+                              // ),
                               hintText: '604.000',
                               hintStyle: textTheme.bodyMedium?.copyWith(
                                 color: isDark ? Colors.white38 : Colors.black38,
@@ -830,11 +1301,12 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                               color: isDark ? Colors.white : Colors.black87,
                             ),
                             decoration: InputDecoration(
-                              prefixText: '\$ ',
-                              prefixStyle: textTheme.bodyMedium?.copyWith(
-                                color: isDark ? Colors.white70 : Colors.black87,
-                                fontWeight: FontWeight.w500,
-                              ),
+                              // COMENTADO: prefixText duplicado - CurrencyInputFormatter ya agrega el "$ "
+                              // prefixText: '\$ ',
+                              // prefixStyle: textTheme.bodyMedium?.copyWith(
+                              //   color: isDark ? Colors.white70 : Colors.black87,
+                              //   fontWeight: FontWeight.w500,
+                              // ),
                               hintText: '500.000',
                               hintStyle: textTheme.bodyMedium?.copyWith(
                                 color: isDark ? Colors.white38 : Colors.black38,
@@ -875,6 +1347,108 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 24),
+                // Fecha de Entrega
+                Text(
+                  'Fecha de Entrega',
+                  style: textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? Colors.white70 : Colors.black54,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                InkWell(
+                  onTap: () async {
+                    final now = DateTime.now();
+                    final firstDate = DateTime(now.year, now.month, now.day + 1); // Mañana como mínimo
+                    final lastDate = DateTime(now.year + 10, 12, 31); // 10 años en el futuro
+                    
+                    final pickedDate = await showDatePicker(
+                      context: context,
+                      initialDate: _fechaEntrega ?? firstDate,
+                      firstDate: firstDate,
+                      lastDate: lastDate,
+                      builder: (context, child) {
+                        return Theme(
+                          data: Theme.of(context).copyWith(
+                            colorScheme: isDark
+                                ? ColorScheme.dark(
+                                    primary: TierraApp.primary,
+                                    onPrimary: Colors.black,
+                                    surface: const Color(0xFF2B2B2B),
+                                  )
+                                : ColorScheme.light(
+                                    primary: TierraApp.primary,
+                                    onPrimary: Colors.black,
+                                    surface: Colors.white,
+                                  ),
+                            dialogBackgroundColor: isDark ? const Color(0xFF2B2B2B) : Colors.white,
+                          ),
+                          child: child!,
+                        );
+                      },
+                    );
+                    
+                    if (pickedDate != null && mounted) {
+                      setState(() {
+                        _fechaEntrega = pickedDate;
+                      });
+                    }
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF2B2B2B) : Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.1),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.calendar_today_outlined,
+                          color: isDark ? Colors.white70 : Colors.black54,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            _fechaEntrega != null
+                                ? '${_fechaEntrega!.day}/${_fechaEntrega!.month}/${_fechaEntrega!.year}'
+                                : 'Selecciona una fecha de entrega',
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: _fechaEntrega != null
+                                  ? (isDark ? Colors.white : Colors.black87)
+                                  : (isDark ? Colors.white38 : Colors.black38),
+                            ),
+                          ),
+                        ),
+                        if (_fechaEntrega != null)
+                          IconButton(
+                            icon: const Icon(Icons.clear, size: 18),
+                            color: isDark ? Colors.white54 : Colors.black54,
+                            onPressed: () {
+                              setState(() {
+                                _fechaEntrega = null;
+                              });
+                            },
+                            tooltip: 'Limpiar fecha',
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                if (_fechaEntrega != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'La fecha de entrega debe ser posterior al día actual',
+                    style: textTheme.bodySmall?.copyWith(
+                      color: isDark ? Colors.white54 : Colors.black54,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 24),
                 // Responsable
                 Text(
