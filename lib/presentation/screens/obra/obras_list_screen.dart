@@ -1,3 +1,5 @@
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/entities/user_entity.dart' as core;
@@ -45,10 +47,12 @@ class ObrasListScreen extends StatefulWidget {
   State<ObrasListScreen> createState() => _ObrasListScreenState();
 }
 
-class _ObrasListScreenState extends State<ObrasListScreen> {
+class _ObrasListScreenState extends State<ObrasListScreen> with WidgetsBindingObserver {
   bool _hasLoaded = false;
   ObraState?
-  _lastValidState; // Mantener el último estado válido de obras activas
+      _lastValidState; // Mantener el último estado válido de obras activas
+  DateTime? _lastUpdateTime; // Timestamp de la última actualización de estados
+  bool _isVisible = false; // Track si el widget está visible
 
   // Controladores y estado para búsqueda y filtros
   final TextEditingController _searchController = TextEditingController();
@@ -59,15 +63,35 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _searchController.addListener(() {
       setState(() {}); // Actualizar cuando cambia el texto de búsqueda
+    });
+    // Llamar después del primer frame para asegurar que el contexto esté disponible
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _updateObrasEstadosOnEnter();
+      }
     });
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Cuando la app vuelve al foreground, actualizar estados
+    if (state == AppLifecycleState.resumed && _isVisible && mounted) {
+      final now = DateTime.now();
+      if (_lastUpdateTime == null || 
+          now.difference(_lastUpdateTime!).inSeconds >= 5) {
+        _updateObrasEstadosOnEnter();
+      }
+    }
   }
 
   // Filtrar y ordenar obras según búsqueda y filtros
@@ -211,16 +235,32 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
   void didChangeDependencies() {
     super.didChangeDependencies();
 
-    // Solo cargar si realmente necesitamos datos
     final currentState = context.read<ObraBloc>().state;
 
     // Si el estado actual es ObraLoaded, guardarlo como válido
     if (currentState is ObraLoaded) {
       _hasLoaded = true;
       _lastValidState = currentState;
-    } else if (currentState is ObraInitial && !_hasLoaded) {
-      // Solo cargar si es el estado inicial y no hemos cargado aún
-      _loadObrasActivas();
+    }
+
+    // Marcar como visible cuando las dependencias cambian
+    if (!_isVisible) {
+      _isVisible = true;
+      // Actualizar estados cuando el widget se vuelve visible
+      final now = DateTime.now();
+      if (_lastUpdateTime == null || 
+          now.difference(_lastUpdateTime!).inSeconds >= 5) {
+        _updateObrasEstadosOnEnter();
+      }
+    }
+  }
+
+  void _updateObrasEstadosOnEnter() {
+    if (mounted) {
+      _lastUpdateTime = DateTime.now();
+      // Actualizar los estados de las obras basándose en las tareas
+      // UpdateObrasEstados automáticamente recarga las obras después de actualizar
+      context.read<ObraBloc>().add(const UpdateObrasEstados());
     }
   }
 
@@ -237,9 +277,12 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
       case 'pendiente':
         return Colors.orange;
       case 'en_proceso':
+      case 'en progreso':
         return Colors.blue;
       case 'finalizado':
         return Colors.green;
+      case 'estancado':
+        return Colors.amber;
       default:
         return Colors.grey;
     }
@@ -255,6 +298,8 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
         return 'En Proceso';
       case 'finalizado':
         return 'Finalizado';
+      case 'estancado':
+        return 'Estancado';
       default:
         return estado;
     }
@@ -447,6 +492,21 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
                                 });
                               },
                               color: Colors.green,
+                              isDark: isDark,
+                            ),
+                            _FilterChip(
+                              label: 'Estancado',
+                              isSelected: localSelectedEstados.contains('estancado'),
+                              onTap: () {
+                                setModalState(() {
+                                  if (localSelectedEstados.contains('estancado')) {
+                                    localSelectedEstados.remove('estancado');
+                                  } else {
+                                    localSelectedEstados.add('estancado');
+                                  }
+                                });
+                              },
+                              color: Colors.amber,
                               isDark: isDark,
                             ),
                           ],
@@ -927,7 +987,9 @@ class _ObrasListScreenState extends State<ObrasListScreen> {
                       : RefreshIndicator(
                           onRefresh: () async {
                             _hasLoaded = false;
-                            context.read<ObraBloc>().add(const LoadObras());
+                            // Actualizar estados de obras antes de recargar
+                            // UpdateObrasEstados automáticamente recarga las obras después de actualizar
+                            context.read<ObraBloc>().add(const UpdateObrasEstados());
                             await Future.delayed(
                               const Duration(milliseconds: 500),
                             );

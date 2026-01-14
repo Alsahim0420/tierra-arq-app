@@ -44,9 +44,12 @@ class _ObrasFinalizadasScreenState extends State<ObrasFinalizadasScreen> {
       case 'pendiente':
         return Colors.orange;
       case 'en_proceso':
+      case 'en progreso':
         return Colors.blue;
       case 'finalizado':
         return Colors.green;
+      case 'estancado':
+        return Colors.amber;
       default:
         return Colors.grey;
     }
@@ -58,9 +61,12 @@ class _ObrasFinalizadasScreenState extends State<ObrasFinalizadasScreen> {
       case 'pendiente':
         return 'Pendiente';
       case 'en_proceso':
+      case 'en progreso':
         return 'En Proceso';
       case 'finalizado':
         return 'Finalizado';
+      case 'estancado':
+        return 'Estancado';
       default:
         return estado;
     }

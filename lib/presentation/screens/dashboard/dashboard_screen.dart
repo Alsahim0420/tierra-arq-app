@@ -1,14 +1,17 @@
-// ignore_for_file: use_build_context_synchronously
+// ignore_for_file: use_build_context_synchronously, curly_braces_in_flow_control_structures, unused_local_variable
 
+import 'dart:developer' as developer;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/entities/user_entity.dart' as core;
 import '../../../core/entities/obra_entity.dart';
 import '../../../core/entities/tarea_entity.dart';
 import '../../app/app.dart';
+import '../../bloc/dashboard/dashboard_bloc.dart';
+import '../../bloc/dashboard/dashboard_event.dart';
+import '../../bloc/dashboard/dashboard_state.dart';
 import '../../bloc/obra/obra_bloc.dart';
 import '../../bloc/obra/obra_event.dart';
-import '../../bloc/obra/obra_state.dart';
 import '../../utils/format_utils.dart';
 import '../obra/obra_detail_screen.dart';
 import '../obra/create_obra_screen.dart';
@@ -31,13 +34,33 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  DateTime? _lastUpdateTime; // Timestamp de la última actualización de estados
+
   @override
   void initState() {
     super.initState();
-    // Cargar obras al inicializar
+    // Actualizar estados de obras y cargar dashboard al inicializar
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ObraBloc>().add(const LoadObras());
+      if (mounted) {
+        // Primero actualizar estados de obras, luego cargar dashboard
+        _updateObrasEstadosOnEnter();
+        context.read<DashboardBloc>().add(const LoadDashboard());
+      }
     });
+  }
+
+  void _updateObrasEstadosOnEnter() {
+    if (mounted) {
+      final now = DateTime.now();
+      // Evitar llamadas muy frecuentes (máximo una vez cada 5 segundos)
+      if (_lastUpdateTime == null || 
+          now.difference(_lastUpdateTime!).inSeconds >= 5) {
+        _lastUpdateTime = now;
+        // Actualizar los estados de las obras basándose en las tareas
+        // UpdateObrasEstados automáticamente recarga las obras después de actualizar
+        context.read<ObraBloc>().add(const UpdateObrasEstados());
+      }
+    }
   }
 
   @override
@@ -48,7 +71,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return Scaffold(
       body: RefreshIndicator(
         onRefresh: () async {
-          context.read<ObraBloc>().add(const LoadObras());
+          // Actualizar estados de obras antes de refrescar dashboard
+          context.read<ObraBloc>().add(const UpdateObrasEstados());
+          context.read<DashboardBloc>().add(const RefreshDashboard());
         },
         child: CustomScrollView(
           slivers: [
@@ -71,16 +96,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             SliverToBoxAdapter(
-              child: BlocBuilder<ObraBloc, ObraState>(
+              child: BlocBuilder<DashboardBloc, DashboardState>(
                 builder: (context, state) {
-                  if (state is ObraLoading || state is ObrasActivasLoading) {
+                  if (state is DashboardLoading) {
                     return const Padding(
                       padding: EdgeInsets.all(32.0),
                       child: Center(child: CircularProgressIndicator()),
                     );
                   }
 
-                  if (state is ObraError) {
+                  if (state is DashboardError) {
                     return Padding(
                       padding: const EdgeInsets.all(32.0),
                       child: Center(
@@ -97,99 +122,57 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               style: textTheme.bodyMedium,
                               textAlign: TextAlign.center,
                             ),
+                            const SizedBox(height: 16),
+                            ElevatedButton(
+                              onPressed: () {
+                                context.read<DashboardBloc>().add(const LoadDashboard());
+                              },
+                              child: const Text('Reintentar'),
+                            ),
                           ],
                         ),
                       ),
                     );
                   }
 
-                  final obras = state is ObraLoaded
-                      ? state.obras
-                      : <ObraEntity>[];
-
-                  // Calcular estadísticas
-                  final totalObras = obras.length;
-                  final obrasActivas = obras
-                      .where(
-                        (o) =>
-                            o.estado != 'finalizado' &&
-                            o.estado != 'finalizada',
-                      )
-                      .length;
-                  final obrasFinalizadas = obras
-                      .where(
-                        (o) =>
-                            o.estado == 'finalizado' ||
-                            o.estado == 'finalizada',
-                      )
-                      .length;
-
-                  // Calcular estadísticas de tareas
-                  int totalTareas = 0;
-                  int tareasPendientes = 0;
-                  int tareasEnProgreso = 0;
-                  int tareasCompletadas = 0;
-
-                  // Calcular información financiera
-                  double presupuestoProyectado = 0.0;
-                  double presupuestoEjecutado = 0.0;
-
-                  // Calcular estadísticas de fechas
-                  int obrasATiempo = 0;
-                  int obrasRetrasadas = 0;
-                  int obrasAdelantadas = 0;
-                  final fechaActual = DateTime.now();
-
-                  for (final obra in obras) {
-                    presupuestoProyectado += obra.costo;
-                    // Presupuesto ejecutado: costo de obras finalizadas
-                    if (obra.estado == 'finalizado' ||
-                        obra.estado == 'finalizada') {
-                      presupuestoEjecutado += obra.costo;
-                    }
-
-                    // Calcular estado de fechas (solo para obras no finalizadas)
-                    if (obra.estado != 'finalizado' &&
-                        obra.estado != 'finalizada') {
-                      final fechaEntrega = obra.fechaEntrega ?? obra.fechaFin;
-                      if (fechaEntrega != null) {
-                        final diferencia = fechaEntrega
-                            .difference(fechaActual)
-                            .inDays;
-                        if (diferencia < 0) {
-                          // Fecha de entrega ya pasó y no está finalizada = retrasada
-                          obrasRetrasadas++;
-                        } else if (diferencia <= 7) {
-                          // Dentro de 7 días = a tiempo (o cerca del deadline)
-                          obrasATiempo++;
-                        } else if (diferencia > 7) {
-                          // Más de 7 días por delante = adelantada (en buen camino)
-                          obrasAdelantadas++;
-                        }
-                      }
-                    }
-
-                    totalTareas += obra.tareas.length;
-                    for (final tarea in obra.tareas) {
-                      final estado = tarea.state.toLowerCase();
-                      if (estado == 'pendiente' || estado == 'pending') {
-                        tareasPendientes++;
-                      } else if (estado == 'en_proceso' ||
-                          estado == 'en_progreso' ||
-                          estado == 'en progreso') {
-                        tareasEnProgreso++;
-                      } else if (estado == 'finalizado' ||
-                          estado == 'finalizada' ||
-                          estado == 'completado' ||
-                          estado == 'completada' ||
-                          estado == 'completed') {
-                        tareasCompletadas++;
-                      }
-                    }
+                  if (state is! DashboardLoaded) {
+                    return const SizedBox.shrink();
                   }
 
-                  // Obras recientes (primeras 5)
-                  final obrasRecientes = obras.take(5).toList();
+                  final dashboard = state.dashboard;
+
+                  // Usar datos del dashboard
+                  final totalObras = dashboard.totalObras;
+                  final obrasActivas = dashboard.obrasActivas;
+                  final obrasFinalizadas = dashboard.obrasFinalizadas;
+                  final obrasEstancadas = dashboard.obrasEstancadas ?? 0;
+                  final totalTareas = dashboard.totalTareas;
+                  final tareasPendientes = dashboard.tareasPendientes;
+                  final tareasEnProgreso = dashboard.tareasEnProgreso;
+                  final tareasCompletadas = dashboard.tareasCompletadas;
+                  final tareasEstancadas = dashboard.tareasEstancadas ?? 0;
+                  final presupuestoProyectado = dashboard.presupuestoProyectado;
+                  final presupuestoEjecutado = dashboard.presupuestoEjecutado;
+                  final obrasATiempo = dashboard.obrasATiempo;
+                  final obrasRetrasadas = dashboard.obrasRetrasadas;
+                  final obrasAdelantadas = dashboard.obrasAdelantadas;
+                  // Usar ?? [] para manejar casos donde el estado anterior no tenga estos campos
+                  final obrasATiempoLista = dashboard.obrasATiempoLista ?? [];
+                  final obrasRetrasadasLista = dashboard.obrasRetrasadasLista ?? [];
+                  final obrasAdelantadasLista = dashboard.obrasAdelantadasLista ?? [];
+                  final obrasRecientes = dashboard.obrasRecientes;
+                  
+                  // Logs para verificar las listas
+                  developer.log('📊 [DashboardScreen] Listas extraídas del dashboard:', name: 'DashboardScreen');
+                  developer.log('  - obrasATiempoLista: ${obrasATiempoLista.length} obras', name: 'DashboardScreen');
+                  developer.log('  - obrasRetrasadasLista: ${obrasRetrasadasLista.length} obras', name: 'DashboardScreen');
+                  developer.log('  - obrasAdelantadasLista: ${obrasAdelantadasLista.length} obras', name: 'DashboardScreen');
+                  if (obrasATiempoLista.isNotEmpty) {
+                    developer.log('  - Primera obra a tiempo: ${obrasATiempoLista.first.title}', name: 'DashboardScreen');
+                  }
+                  if (obrasRetrasadasLista.isNotEmpty) {
+                    developer.log('  - Primera obra retrasada: ${obrasRetrasadasLista.first.title}', name: 'DashboardScreen');
+                  }
 
                   return Padding(
                     padding: const EdgeInsets.all(16.0),
@@ -216,7 +199,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 isDark: isDark,
                                 onTap: () => _showObrasModal(
                                   context,
-                                  obras,
+                                  obrasRecientes,
                                   'Total',
                                   null,
                                   isDark,
@@ -234,7 +217,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 isDark: isDark,
                                 onTap: () => _showObrasModal(
                                   context,
-                                  obras,
+                                  obrasRecientes,
                                   'Activas',
                                   'activas',
                                   isDark,
@@ -252,7 +235,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 isDark: isDark,
                                 onTap: () => _showObrasModal(
                                   context,
-                                  obras,
+                                  obrasRecientes,
                                   'Finalizadas',
                                   'finalizadas',
                                   isDark,
@@ -260,6 +243,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                               ),
                             ),
+                            // Comentado: Tarjeta de Estancadas
+                            // const SizedBox(width: 12),
+                            // Expanded(
+                            //   child: _StatCard(
+                            //     icon: Icons.pause_circle_outline,
+                            //     label: 'Estancadas',
+                            //     value: obrasEstancadas.toString(),
+                            //     color: Colors.amber,
+                            //     isDark: isDark,
+                            //     onTap: () => _showObrasModal(
+                            //       context,
+                            //       obrasRecientes,
+                            //       'Estancadas',
+                            //       'estancado',
+                            //       isDark,
+                            //       textTheme,
+                            //     ),
+                            //   ),
+                            // ),
                           ],
                         ),
                         const SizedBox(height: 24),
@@ -273,6 +275,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
+                        // Layout 2x2: Total | Pendientes en la primera fila
                         Row(
                           children: [
                             Expanded(
@@ -284,7 +287,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 isDark: isDark,
                                 onTap: () => _showTareasModal(
                                   context,
-                                  obras,
+                                  obrasRecientes,
                                   'Total',
                                   null,
                                   isDark,
@@ -302,7 +305,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 isDark: isDark,
                                 onTap: () => _showTareasModal(
                                   context,
-                                  obras,
+                                  obrasRecientes,
                                   'Pendientes',
                                   'pendiente',
                                   isDark,
@@ -313,6 +316,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           ],
                         ),
                         const SizedBox(height: 12),
+                        // Layout 2x2: En Progreso | Completadas en la segunda fila
                         Row(
                           children: [
                             Expanded(
@@ -324,7 +328,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 isDark: isDark,
                                 onTap: () => _showTareasModal(
                                   context,
-                                  obras,
+                                  obrasRecientes,
                                   'En Progreso',
                                   'en_proceso',
                                   isDark,
@@ -342,7 +346,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 isDark: isDark,
                                 onTap: () => _showTareasModal(
                                   context,
-                                  obras,
+                                  obrasRecientes,
                                   'Completadas',
                                   'finalizado',
                                   isDark,
@@ -350,6 +354,25 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                               ),
                             ),
+                            // Comentado: Tarjeta de Estancadas
+                            // const SizedBox(width: 12),
+                            // Expanded(
+                            //   child: _StatCard(
+                            //     icon: Icons.pause_circle_outline,
+                            //     label: 'Estancadas',
+                            //     value: tareasEstancadas.toString(),
+                            //     color: Colors.amber,
+                            //     isDark: isDark,
+                            //     onTap: () => _showTareasModal(
+                            //       context,
+                            //       obrasRecientes,
+                            //       'Estancadas',
+                            //       'estancado',
+                            //       isDark,
+                            //       textTheme,
+                            //     ),
+                            //   ),
+                            // ),
                           ],
                         ),
                         const SizedBox(height: 24),
@@ -490,8 +513,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       padding: const EdgeInsets.all(8),
                                       decoration: BoxDecoration(
                                         color:
-                                            (presupuestoProyectado -
-                                                            presupuestoEjecutado >=
+                                            (dashboard.varianzaPresupuestaria >=
                                                         0
                                                     ? Colors.orange
                                                     : Colors.red)
@@ -501,14 +523,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Icon(
-                                        presupuestoProyectado -
-                                                    presupuestoEjecutado >=
+                                        dashboard.varianzaPresupuestaria >=
                                                 0
                                             ? Icons.trending_up
                                             : Icons.trending_down,
                                         color:
-                                            presupuestoProyectado -
-                                                    presupuestoEjecutado >=
+                                            dashboard.varianzaPresupuestaria >=
                                                 0
                                             ? Colors.orange
                                             : Colors.red,
@@ -533,8 +553,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           const SizedBox(height: 4),
                                           Text(
                                             FormatUtils.formatCurrency(
-                                              presupuestoProyectado -
-                                                  presupuestoEjecutado,
+                                              dashboard.varianzaPresupuestaria,
                                             ),
                                             style: textTheme.titleMedium?.copyWith(
                                               fontWeight: FontWeight.w600,
@@ -624,18 +643,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 isDark: isDark,
                                 onTap: () => _showObrasModal(
                                   context,
-                                  obras.where((o) {
-                                    if (o.estado == 'finalizado' ||
-                                        o.estado == 'finalizada')
-                                      return false;
-                                    final fechaEntrega =
-                                        o.fechaEntrega ?? o.fechaFin;
-                                    if (fechaEntrega == null) return false;
-                                    final diferencia = fechaEntrega
-                                        .difference(DateTime.now())
-                                        .inDays;
-                                    return diferencia >= 0 && diferencia <= 7;
-                                  }).toList(),
+                                  obrasATiempoLista,
                                   'Proyectos a Tiempo',
                                   null,
                                   isDark,
@@ -653,18 +661,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 isDark: isDark,
                                 onTap: () => _showObrasModal(
                                   context,
-                                  obras.where((o) {
-                                    if (o.estado == 'finalizado' ||
-                                        o.estado == 'finalizada')
-                                      return false;
-                                    final fechaEntrega =
-                                        o.fechaEntrega ?? o.fechaFin;
-                                    if (fechaEntrega == null) return false;
-                                    return fechaEntrega
-                                            .difference(DateTime.now())
-                                            .inDays <
-                                        0;
-                                  }).toList(),
+                                  obrasRetrasadasLista,
                                   'Proyectos Retrasados',
                                   null,
                                   isDark,
@@ -682,18 +679,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 isDark: isDark,
                                 onTap: () => _showObrasModal(
                                   context,
-                                  obras.where((o) {
-                                    if (o.estado == 'finalizado' ||
-                                        o.estado == 'finalizada')
-                                      return false;
-                                    final fechaEntrega =
-                                        o.fechaEntrega ?? o.fechaFin;
-                                    if (fechaEntrega == null) return false;
-                                    return fechaEntrega
-                                            .difference(DateTime.now())
-                                            .inDays >
-                                        7;
-                                  }).toList(),
+                                  obrasAdelantadasLista,
                                   'Proyectos Adelantados',
                                   null,
                                   isDark,
@@ -861,6 +847,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 estadoNormalizado == 'completado' ||
                 estadoNormalizado == 'completada' ||
                 estadoNormalizado == 'completed';
+          } else if (filtroNormalizado == 'estancado' ||
+              filtroNormalizado == 'estancada' ||
+              filtroNormalizado == 'stalled') {
+            coincide =
+                estadoNormalizado == 'estancado' ||
+                estadoNormalizado == 'estancada' ||
+                estadoNormalizado == 'stalled';
           }
 
           if (coincide) {
@@ -1114,21 +1107,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
     bool isDark,
     TextTheme textTheme,
   ) {
+    developer.log('📋 [DashboardScreen] _showObrasModal llamado:', name: 'DashboardScreen');
+    developer.log('  - Título: $title', name: 'DashboardScreen');
+    developer.log('  - Obras recibidas: ${obras.length}', name: 'DashboardScreen');
+    developer.log('  - Tipo filtro: $tipoFiltro', name: 'DashboardScreen');
+    if (obras.isNotEmpty) {
+      developer.log('  - Primera obra: ${obras.first.title}', name: 'DashboardScreen');
+    }
+    
     // Filtrar obras según el tipo
     List<ObraEntity> obrasFiltradas = [];
 
     if (tipoFiltro == null) {
       // Mostrar todas las obras
       obrasFiltradas = obras;
+      developer.log('  - Obras filtradas (sin filtro): ${obrasFiltradas.length}', name: 'DashboardScreen');
     } else if (tipoFiltro == 'activas') {
-      // Filtrar obras activas (no finalizadas)
+      // Filtrar obras activas (no finalizadas ni estancadas)
       obrasFiltradas = obras
-          .where((o) => o.estado != 'finalizado' && o.estado != 'finalizada')
+          .where((o) {
+            final estado = o.estado.toLowerCase();
+            return estado != 'finalizado' && 
+                   estado != 'finalizada' &&
+                   estado != 'estancado' &&
+                   estado != 'estancada';
+          })
           .toList();
     } else if (tipoFiltro == 'finalizadas') {
       // Filtrar obras finalizadas
       obrasFiltradas = obras
-          .where((o) => o.estado == 'finalizado' || o.estado == 'finalizada')
+          .where((o) {
+            final estado = o.estado.toLowerCase();
+            return estado == 'finalizado' || estado == 'finalizada';
+          })
+          .toList();
+    } else if (tipoFiltro == 'estancado' || tipoFiltro == 'estancada') {
+      // Filtrar obras estancadas
+      obrasFiltradas = obras
+          .where((o) {
+            final estado = o.estado.toLowerCase();
+            return estado == 'estancado' || estado == 'estancada' || estado == 'stalled';
+          })
           .toList();
     }
 
@@ -1341,12 +1360,17 @@ class _ObraCard extends StatelessWidget {
                                 color: isDark ? Colors.white54 : Colors.black54,
                               ),
                               const SizedBox(width: 4),
-                              Text(
-                                obra.location,
-                                style: textTheme.bodySmall?.copyWith(
-                                  color: isDark
-                                      ? Colors.white54
-                                      : Colors.black54,
+                              Expanded(
+                                child: Text(
+                                  obra.location,
+                                  style: textTheme.bodySmall?.copyWith(
+                                    color: isDark
+                                        ? Colors.white54
+                                        : Colors.black54,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                  softWrap: false,
                                 ),
                               ),
                             ],

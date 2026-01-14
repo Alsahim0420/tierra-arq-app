@@ -1,3 +1,4 @@
+import 'dart:developer' as developer;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/usecases/tarea_usecases.dart';
 import 'tarea_event.dart';
@@ -179,18 +180,30 @@ class TareaBloc extends Bloc<TareaEvent, TareaState> {
     UpdateTareaState event,
     Emitter<TareaState> emit,
   ) async {
+    developer.log('🔄 [TareaBloc] _onUpdateTareaState iniciado', name: 'TareaStateFlow');
+    developer.log('🔄 [TareaBloc] obraId: ${event.obraId}', name: 'TareaStateFlow');
+    developer.log('🔄 [TareaBloc] tareaId: ${event.tareaId}', name: 'TareaStateFlow');
+    developer.log('🔄 [TareaBloc] estado: ${event.state}', name: 'TareaStateFlow');
+    
     emit(const TareaLoading());
     try {
+      developer.log('🔄 [TareaBloc] Llamando a updateTareaStateUseCase...', name: 'TareaStateFlow');
       final tarea = await updateTareaStateUseCase(
         event.obraId,
         event.tareaId,
         event.state,
       );
+      developer.log('🔄 [TareaBloc] Tarea actualizada recibida', name: 'TareaStateFlow');
+      developer.log('🔄 [TareaBloc] Tarea - id: ${tarea.id}', name: 'TareaStateFlow');
+      developer.log('🔄 [TareaBloc] Tarea - state: ${tarea.state}', name: 'TareaStateFlow');
+      
       final currentState = state;
       if (currentState is TareaLoaded) {
+        developer.log('🔄 [TareaBloc] Estado actual es TareaLoaded con ${currentState.tareas.length} tareas', name: 'TareaStateFlow');
         final updatedTareas = currentState.tareas.map((t) {
           return t.id == tarea.id ? tarea : t;
         }).toList();
+        developer.log('🔄 [TareaBloc] Emitiendo TareaLoaded con ${updatedTareas.length} tareas', name: 'TareaStateFlow');
         emit(TareaLoaded(
           tareas: updatedTareas,
           selectedTarea: currentState.selectedTarea?.id == tarea.id
@@ -198,10 +211,13 @@ class TareaBloc extends Bloc<TareaEvent, TareaState> {
               : currentState.selectedTarea,
         ));
       } else {
-        // Si no hay estado cargado, crear uno nuevo con la tarea actualizada
+        developer.log('🔄 [TareaBloc] Estado actual NO es TareaLoaded, creando nuevo estado', name: 'TareaStateFlow');
         emit(TareaLoaded(tareas: [tarea], selectedTarea: tarea));
       }
-    } catch (e) {
+      developer.log('🔄 [TareaBloc] _onUpdateTareaState completado exitosamente', name: 'TareaStateFlow');
+    } catch (e, stackTrace) {
+      developer.log('❌ [TareaBloc] Error en _onUpdateTareaState: $e', name: 'TareaStateFlow');
+      developer.log('❌ [TareaBloc] Stack trace: $stackTrace', name: 'TareaStateFlow');
       emit(TareaError('Error al actualizar estado de tarea: $e'));
     }
   }

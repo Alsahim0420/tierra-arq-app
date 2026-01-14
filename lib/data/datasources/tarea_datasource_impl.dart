@@ -1,6 +1,7 @@
 // ignore_for_file: unused_catch_clause, unused_catch_stack, duplicate_ignore
 
 import 'dart:convert';
+import 'dart:developer' as developer;
 import '../../core/datasources/tarea_datasource.dart';
 import '../../core/entities/tarea_entity.dart';
 import '../../core/entities/user_entity.dart';
@@ -274,7 +275,7 @@ class TareaDataSourceImpl implements TareaDataSource {
       
       // Construir el body según el formato del endpoint
       // Para tareas independientes: name, description, state, duration, observation (sin evidences)
-      // Para tareas en obra: name, description, state, duration, observation, evidences
+      // Para tareas en obra: name, description, state, duration, observation, evidences, costo
       final body = <String, dynamic>{
         'name': tarea.name,
         'description': tarea.description,
@@ -286,6 +287,11 @@ class TareaDataSourceImpl implements TareaDataSource {
       // Si tiene contenido, agregarlo; si está vacío o es null, no incluirlo (según CURL)
       if (tarea.observation != null && tarea.observation!.isNotEmpty) {
         body['observation'] = tarea.observation;
+      }
+      
+      // Incluir costo si existe
+      if (tarea.costo != null) {
+        body['costo'] = tarea.costo;
       }
       
       // Solo incluir evidences si la tarea está asociada a una obra (obraId no vacío)
@@ -410,16 +416,30 @@ class TareaDataSourceImpl implements TareaDataSource {
     String state,
   ) async {
     try {
+      developer.log('🔄 [TareaState] Iniciando actualización de estado', name: 'TareaStateFlow');
+      developer.log('🔄 [TareaState] obraId: $obraId', name: 'TareaStateFlow');
+      developer.log('🔄 [TareaState] tareaId: $tareaId', name: 'TareaStateFlow');
+      developer.log('🔄 [TareaState] estado recibido: $state', name: 'TareaStateFlow');
+      
       // Normalizar el estado para la API (convertir "en progreso" a "en_proceso")
       final normalizedState = _normalizeStateForApi(state);
+      developer.log('🔄 [TareaState] estado normalizado para API: $normalizedState', name: 'TareaStateFlow');
 
+      final url = '/master/obra/$obraId/tarea/$tareaId/estado';
+      developer.log('🔄 [TareaState] URL: $url', name: 'TareaStateFlow');
+      developer.log('🔄 [TareaState] Body: {"state": "$normalizedState"}', name: 'TareaStateFlow');
+      
       final response = await _httpService.put(
-        '/master/obra/$obraId/tarea/$tareaId/estado',
+        url,
         body: {'state': normalizedState},
       );
 
+      developer.log('🔄 [TareaState] Response status: ${response.statusCode}', name: 'TareaStateFlow');
+      developer.log('🔄 [TareaState] Response body: ${response.body}', name: 'TareaStateFlow');
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
+        developer.log('🔄 [TareaState] Response data keys: ${data.keys}', name: 'TareaStateFlow');
         
         // La respuesta puede venir en diferentes formatos
         // Intentar obtener la tarea actualizada desde la respuesta
@@ -429,33 +449,48 @@ class TareaDataSourceImpl implements TareaDataSource {
             final dataObj = data['data'] as Map<String, dynamic>;
             if (dataObj.containsKey('tarea')) {
               tareaData = dataObj['tarea'] as Map<String, dynamic>;
+              developer.log('🔄 [TareaState] Tarea encontrada en data.tarea', name: 'TareaStateFlow');
             } else {
               tareaData = dataObj;
+              developer.log('🔄 [TareaState] Tarea encontrada en data (directo)', name: 'TareaStateFlow');
             }
           } else {
-            // Si no viene la tarea completa, crear una respuesta básica
             tareaData = {'_id': tareaId, 'state': normalizedState};
+            developer.log('🔄 [TareaState] Usando tareaData básico (data no es Map)', name: 'TareaStateFlow');
           }
         } else if (data.containsKey('tarea')) {
           tareaData = data['tarea'] as Map<String, dynamic>;
+          developer.log('🔄 [TareaState] Tarea encontrada en data.tarea (raíz)', name: 'TareaStateFlow');
         } else {
-          // Si no viene la tarea completa, crear una respuesta básica
-          // con el estado actualizado
           tareaData = {'_id': tareaId, 'state': normalizedState};
+          developer.log('🔄 [TareaState] Usando tareaData básico (no se encontró tarea en respuesta)', name: 'TareaStateFlow');
         }
 
-        return _mapTareaFromApi(tareaData);
+        developer.log('🔄 [TareaState] tareaData keys: ${tareaData.keys}', name: 'TareaStateFlow');
+        developer.log('🔄 [TareaState] tareaData.state: ${tareaData['state']}', name: 'TareaStateFlow');
+        
+        final tareaMapeada = _mapTareaFromApi(tareaData);
+        developer.log('🔄 [TareaState] Tarea mapeada exitosamente', name: 'TareaStateFlow');
+        developer.log('🔄 [TareaState] Tarea mapeada - id: ${tareaMapeada.id}', name: 'TareaStateFlow');
+        developer.log('🔄 [TareaState] Tarea mapeada - state: ${tareaMapeada.state}', name: 'TareaStateFlow');
+        
+        return tareaMapeada;
       } else if (response.statusCode == 404) {
+        developer.log('❌ [TareaState] Error 404: Tarea no encontrada', name: 'TareaStateFlow');
         throw const ServerException('Tarea no encontrada', 404);
       } else {
+        developer.log('❌ [TareaState] Error ${response.statusCode}: ${response.body}', name: 'TareaStateFlow');
         throw ServerException(
           'Error al actualizar el estado de la tarea',
           response.statusCode,
         );
       }
-    } on AppException {
+    } on AppException catch (e) {
+      developer.log('❌ [TareaState] AppException: $e', name: 'TareaStateFlow');
       rethrow;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      developer.log('❌ [TareaState] Exception: $e', name: 'TareaStateFlow');
+      developer.log('❌ [TareaState] Stack trace: $stackTrace', name: 'TareaStateFlow');
       throw UnknownException('Error al actualizar estado de tarea: ${e.toString()}');
     }
   }
@@ -476,9 +511,6 @@ class TareaDataSourceImpl implements TareaDataSource {
     }
   }
 
-  /// Normalizar el estado desde el formato de API al formato de UI
-  /// API: "pendiente", "en_proceso", "finalizado"
-  /// UI: "pendiente", "en progreso", "finalizado"
   String _normalizeStateFromApi(String state) {
     final normalized = state.toLowerCase().trim();
     if (normalized == 'en_proceso' || normalized == 'en_progreso') {
@@ -494,13 +526,15 @@ class TareaDataSourceImpl implements TareaDataSource {
         normalized == 'completed') {
       return 'finalizado';
     }
+    if (normalized == 'estancado' ||
+        normalized == 'estancada' ||
+        normalized == 'stalled') {
+      return 'estancado';
+    }
     // Si no coincide, devolver el valor normalizado tal cual
     return normalized;
   }
 
-  /// Normalizar el estado desde el formato de UI al formato de API
-  /// UI: "pendiente", "en progreso", "finalizado"
-  /// API: "pendiente", "en_proceso", "finalizado"
   String _normalizeStateForApi(String state) {
     final normalized = state.toLowerCase().trim();
     if (normalized == 'en progreso' || normalized == 'en_progreso') {
@@ -515,6 +549,11 @@ class TareaDataSourceImpl implements TareaDataSource {
         normalized == 'completado' ||
         normalized == 'completed') {
       return 'finalizado';
+    }
+    if (normalized == 'estancado' ||
+        normalized == 'estancada' ||
+        normalized == 'stalled') {
+      return 'estancado';
     }
     // Si ya está en formato API, devolverlo tal cual
     return normalized;
@@ -592,6 +631,17 @@ class TareaDataSourceImpl implements TareaDataSource {
       // Mapear obraTareaId si existe
       final obraTareaId = data['obra_tarea_id']?.toString();
 
+      // Mapear costo si existe
+      double? costo;
+      if (data['costo'] != null) {
+        final costoValue = data['costo'];
+        if (costoValue is num) {
+          costo = costoValue.toDouble();
+        } else if (costoValue is String) {
+          costo = double.tryParse(costoValue);
+        }
+      }
+
       // Crear TareaEntity
       final tarea = TareaEntity(
         id: id,
@@ -603,6 +653,7 @@ class TareaDataSourceImpl implements TareaDataSource {
         assignedTo: assignedTo,
         observation: observation,
         obraTareaId: obraTareaId,
+        costo: costo,
       );
       return tarea;
     } catch (e, stackTrace) {

@@ -4,6 +4,7 @@ import '../../../core/entities/obra_entity.dart';
 import '../../../core/entities/tarea_entity.dart';
 import '../../../core/entities/user_entity.dart' as core;
 import '../../utils/format_utils.dart';
+import '../../utils/user_role_utils.dart';
 import '../tarea/tarea_detail_screen.dart';
 import '../../widgets/evidences_gallery.dart';
 import '../../bloc/obra/obra_bloc.dart';
@@ -117,6 +118,47 @@ class ObraDetailScreen extends StatelessWidget {
                             ),
                           ],
                         ),
+                        // Comentado: Campo de Costo Estimado
+                        // if (currentObra.costoEstimado != null && currentObra.costoEstimado! > 0) ...[
+                        //   const SizedBox(height: 12),
+                        //   Row(
+                        //     children: [
+                        //       Icon(
+                        //         Icons.assessment,
+                        //         size: 20,
+                        //         color: isDark ? Colors.white70 : Colors.black54,
+                        //       ),
+                        //       const SizedBox(width: 8),
+                        //       Text(
+                        //         'Costo Estimado: ${FormatUtils.formatCurrency(currentObra.costoEstimado!)}',
+                        //         style: textTheme.bodyMedium?.copyWith(
+                        //           color: isDark ? Colors.white : Colors.black87,
+                        //         ),
+                        //       ),
+                        //     ],
+                        //   ),
+                        // ],
+                        // Comentado: Campo de Costo Final
+                        // if (currentObra.costoFinal != null && currentObra.costoFinal! > 0) ...[
+                        //   const SizedBox(height: 12),
+                        //   Row(
+                        //     children: [
+                        //       Icon(
+                        //         Icons.check_circle_outline,
+                        //         size: 20,
+                        //         color: Colors.green,
+                        //       ),
+                        //       const SizedBox(width: 8),
+                        //       Text(
+                        //         'Costo Final: ${FormatUtils.formatCurrency(currentObra.costoFinal!)}',
+                        //         style: textTheme.bodyMedium?.copyWith(
+                        //           color: Colors.green,
+                        //           fontWeight: FontWeight.w600,
+                        //         ),
+                        //       ),
+                        //     ],
+                        //   ),
+                        // ],
                         if (currentObra.responsable.name.isNotEmpty) ...[
                           const SizedBox(height: 12),
                           Row(
@@ -245,73 +287,102 @@ class ObraDetailScreen extends StatelessWidget {
                                 ),
                               ],
                               const SizedBox(height: 12),
-                              Row(
-                                children: [
-                                  if (tarea.duration > 0) ...[
-                                    Icon(
-                                      Icons.access_time,
-                                      size: 16,
-                                      color: isDark
-                                          ? Colors.white54
-                                          : Colors.black54,
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      '${tarea.duration} días',
-                                      style: textTheme.bodySmall?.copyWith(
-                                        color: isDark
-                                            ? Colors.white54
-                                            : Colors.black54,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                  ],
-                                  if (tarea.evidences.isNotEmpty) ...[
-                                    InkWell(
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) => EvidencesGallery(
-                                              evidences: tarea.evidences,
-                                              title: tarea.name,
-                                            ),
-                                          ),
-                                        );
-                                      },
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(
-                                            Icons.image,
-                                            size: 16,
+                              Builder(
+                                builder: (context) {
+                                  // Obtener el usuario del AuthBloc para verificar si es admin
+                                  final authState = context.read<AuthBloc>().state;
+                                  final isAdmin = authState is AuthAuthenticated && 
+                                                  UserRoleUtils.isAdmin(authState.user);
+                                  
+                                  return Row(
+                                    children: [
+                                      if (tarea.duration > 0) ...[
+                                        Icon(
+                                          Icons.access_time,
+                                          size: 16,
+                                          color: isDark
+                                              ? Colors.white54
+                                              : Colors.black54,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '${tarea.duration} días',
+                                          style: textTheme.bodySmall?.copyWith(
                                             color: isDark
                                                 ? Colors.white54
                                                 : Colors.black54,
                                           ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            '${tarea.evidences.length} evidencia${tarea.evidences.length > 1 ? 's' : ''}',
-                                            style: textTheme.bodySmall
-                                                ?.copyWith(
-                                                  color: isDark
-                                                      ? Colors.white54
-                                                      : Colors.black54,
+                                        ),
+                                        const SizedBox(width: 16),
+                                      ],
+                                      // Mostrar costo solo para admin
+                                      if (isAdmin && tarea.costo != null && tarea.costo! > 0) ...[
+                                        Icon(
+                                          Icons.attach_money,
+                                          size: 16,
+                                          color: isDark
+                                              ? Colors.white54
+                                              : Colors.black54,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          FormatUtils.formatCurrency(tarea.costo!),
+                                          style: textTheme.bodySmall?.copyWith(
+                                            color: isDark
+                                                ? Colors.white54
+                                                : Colors.black54,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 16),
+                                      ],
+                                      if (tarea.evidences.isNotEmpty) ...[
+                                        InkWell(
+                                          onTap: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => EvidencesGallery(
+                                                  evidences: tarea.evidences,
+                                                  title: tarea.name,
                                                 ),
+                                              ),
+                                            );
+                                          },
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.image,
+                                                size: 16,
+                                                color: isDark
+                                                    ? Colors.white54
+                                                    : Colors.black54,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '${tarea.evidences.length} evidencia${tarea.evidences.length > 1 ? 's' : ''}',
+                                                style: textTheme.bodySmall
+                                                    ?.copyWith(
+                                                      color: isDark
+                                                          ? Colors.white54
+                                                          : Colors.black54,
+                                                    ),
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Icon(
+                                                Icons.arrow_forward_ios,
+                                                size: 14,
+                                                color: isDark
+                                                    ? Colors.white54
+                                                    : Colors.black54,
+                                              ),
+                                            ],
                                           ),
-                                          const SizedBox(width: 4),
-                                          Icon(
-                                            Icons.arrow_forward_ios,
-                                            size: 14,
-                                            color: isDark
-                                                ? Colors.white54
-                                                : Colors.black54,
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ],
+                                        ),
+                                      ],
+                                    ],
+                                  );
+                                },
                               ),
                               // Mostrar observación si la tarea está finalizada y tiene observación
                               if (FormatUtils.formatStateText(tarea.state) ==

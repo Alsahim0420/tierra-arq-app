@@ -1,4 +1,7 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
+import 'dart:developer' as developer;
 import 'package:http/http.dart' as http;
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'token_storage_service.dart';
@@ -13,17 +16,6 @@ enum HttpMethod {
   patch,
 }
 
-/// Servicio HTTP global limpio y fácil de usar
-/// 
-/// Uso:
-/// ```dart
-/// final response = await httpService.request(
-///   HttpMethod.post,
-///   '/user/login',
-///   body: {'email': email, 'password': password},
-///   requiresAuth: false,
-/// );
-/// ```
 class HttpService {
   final TokenStorageService _tokenStorage;
   final String _baseUrl;
@@ -34,15 +26,7 @@ class HttpService {
   })  : _tokenStorage = tokenStorage,
         _baseUrl = baseUrl ?? 'https://tierra-platform-backend.vercel.app/api';
 
-  /// Método principal para realizar peticiones HTTP
-  /// 
-  /// [method] - Tipo de petición (GET, POST, PUT, DELETE, PATCH)
-  /// [endpoint] - Endpoint de la API (ej: '/user/login')
-  /// [body] - Cuerpo de la petición (opcional)
-  /// [requiresAuth] - Si requiere autenticación (default: true)
-  /// [headers] - Headers adicionales (opcional)
-  /// 
-  /// Retorna la respuesta HTTP
+
   Future<http.Response> request(
     HttpMethod method,
     String endpoint, {
@@ -296,5 +280,142 @@ class HttpService {
         requiresAuth: requiresAuth,
         headers: headers,
       );
+
+  /// POST request con multipart/form-data (para subida de archivos)
+  Future<http.Response> postMultipart(
+    String endpoint, {
+    required File file,
+    String fieldName = 'documento',
+    bool requiresAuth = true,
+    Map<String, String>? additionalFields,
+  }) async {
+    try {
+      // Construir URL completa
+      final url = _buildUrl(endpoint);
+
+      // Crear request multipart
+      final request = http.MultipartRequest('POST', Uri.parse(url));
+
+      // Agregar headers de autenticación si es necesario
+      if (requiresAuth) {
+        final token = await _getValidToken();
+        if (token != null) {
+          request.headers['Authorization'] = 'Bearer $token';
+        }
+      }
+
+      // Agregar campos adicionales si existen
+      if (additionalFields != null) {
+        request.fields.addAll(additionalFields);
+      }
+
+      // Agregar el archivo
+      final fileBytes = await file.readAsBytes();
+      final fileName = file.path.split('/').last;
+      final fileExtension = fileName.split('.').last.toLowerCase();
+      
+      developer.log('📤 [HttpService] Subiendo archivo:', name: 'TareaStateFlow');
+      developer.log('📤 [HttpService] Nombre: $fileName', name: 'TareaStateFlow');
+      developer.log('📤 [HttpService] Extensión: $fileExtension', name: 'TareaStateFlow');
+      developer.log('📤 [HttpService] Tamaño: ${fileBytes.length} bytes (${(fileBytes.length / 1024).toStringAsFixed(2)} KB)', name: 'TareaStateFlow');
+      developer.log('📤 [HttpService] Field name: $fieldName', name: 'TareaStateFlow');
+      
+      // Determinar Content-Type basado en la extensión
+      String? contentType;
+      switch (fileExtension) {
+        case 'xlsx':
+          contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+          break;
+        case 'xls':
+          contentType = 'application/vnd.ms-excel';
+          break;
+        case 'csv':
+          contentType = 'text/csv';
+          break;
+        case 'pdf':
+          contentType = 'application/pdf';
+          break;
+        case 'txt':
+          contentType = 'text/plain';
+          break;
+        default:
+          contentType = 'application/octet-stream';
+      }
+      
+      developer.log('📤 [HttpService] Content-Type: $contentType', name: 'TareaStateFlow');
+      
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          fieldName,
+          fileBytes,
+          filename: fileName,
+          contentType: contentType != null 
+              ? http.MediaType.parse(contentType)
+              : null,
+        ),
+      );
+      
+      developer.log('📤 [HttpService] URL: $url', name: 'TareaStateFlow');
+      developer.log('📤 [HttpService] Headers: ${request.headers}', name: 'TareaStateFlow');
+
+      // Enviar request
+      developer.log('📤 [HttpService] Enviando petición multipart...', name: 'TareaStateFlow');
+      developer.log('📤 [HttpService] Total de archivos: ${request.files.length}', name: 'TareaStateFlow');
+      developer.log('📤 [HttpService] Total de campos: ${request.fields.length}', name: 'TareaStateFlow');
+      
+      final streamedResponse = await request.send().timeout(
+        const Duration(minutes: 5), // Timeout de 5 minutos para archivos grandes
+        onTimeout: () {
+          developer.log('❌ [HttpService] Timeout al enviar petición multipart', name: 'TareaStateFlow');
+          throw TimeoutException('La petición tardó demasiado. El archivo puede ser muy grande.');
+        },
+      );
+      developer.log('📤 [HttpService] StreamedResponse recibido, statusCode: ${streamedResponse.statusCode}', name: 'TareaStateFlow');
+      developer.log('📤 [HttpService] StreamedResponse headers: ${streamedResponse.headers}', name: 'TareaStateFlow');
+      
+      final response = await http.Response.fromStream(streamedResponse).timeout(
+        const Duration(minutes: 2), // Timeout para leer la respuesta
+        onTimeout: () {
+          developer.log('❌ [HttpService] Timeout al leer respuesta', name: 'TareaStateFlow');
+          throw TimeoutException('La respuesta tardó demasiado en llegar.');
+        },
+      );
+      developer.log('📤 [HttpService] Response convertido, statusCode: ${response.statusCode}', name: 'TareaStateFlow');
+      developer.log('📤 [HttpService] Response body length: ${response.body.length} bytes', name: 'TareaStateFlow');
+
+      // Si el token expiró, intentar refrescar y reintentar
+      if (response.statusCode == 401 && requiresAuth) {
+        final newToken = await _refreshToken();
+        if (newToken != null) {
+          // Recrear request con nuevo token
+          final retryRequest = http.MultipartRequest('POST', Uri.parse(url));
+          retryRequest.headers['Authorization'] = 'Bearer $newToken';
+          if (additionalFields != null) {
+            retryRequest.fields.addAll(additionalFields);
+          }
+          retryRequest.files.add(
+            http.MultipartFile.fromBytes(
+              fieldName,
+              fileBytes,
+              filename: file.path.split('/').last,
+            ),
+          );
+          final retryStreamedResponse = await retryRequest.send();
+          return await http.Response.fromStream(retryStreamedResponse);
+        }
+      }
+
+      return response;
+    } on AppException {
+      rethrow;
+    } on http.ClientException catch (e) {
+      developer.log('❌ [HttpService] ClientException: $e', name: 'TareaStateFlow');
+      throw const NetworkException('Error de conexión. Verifica tu internet.');
+    } catch (e, stackTrace) {
+      developer.log('❌ [HttpService] Exception inesperada: $e', name: 'TareaStateFlow');
+      developer.log('❌ [HttpService] Stack trace: $stackTrace', name: 'TareaStateFlow');
+      throw UnknownException('Error inesperado: ${e.toString()}');
+    }
+  }
 }
 

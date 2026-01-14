@@ -26,6 +26,7 @@ class ObraMapper {
       description: json['description']?.toString() ?? '',
       location: json['location']?.toString() ?? '',
       city: json['city']?.toString() ?? '',
+      departamento: json['departamento']?.toString(),
       costo: (json['costo'] ?? json['cost'] ?? 0.0) is int
           ? (json['costo'] ?? json['cost'] ?? 0).toDouble()
           : (json['costo'] ?? json['cost'] ?? 0.0) as double,

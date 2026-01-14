@@ -29,7 +29,7 @@ class _CreateTareaModalState extends State<CreateTareaModal> {
   final _descriptionController = TextEditingController();
   final _durationController = TextEditingController();
   String _selectedState = 'pendiente';
-  final List<String> _estados = ['pendiente', 'en progreso', 'finalizado'];
+  final List<String> _estados = ['pendiente', 'en progreso', 'finalizado', 'estancado'];
   bool _isCreating = false;
 
   @override

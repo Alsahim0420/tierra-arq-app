@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use, use_build_context_synchronously
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously, prefer_conditional_assignment, unnecessary_import
 
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -16,6 +16,7 @@ import '../../bloc/obra/obra_event.dart';
 import '../../bloc/obra/obra_state.dart';
 import '../../app/app.dart';
 import '../../utils/format_utils.dart';
+import 'package:flutter/services.dart';
 import '../../utils/user_role_utils.dart';
 import '../../widgets/tarea_info_row.dart';
 import '../../widgets/evidences_gallery.dart';
@@ -41,7 +42,7 @@ class TareaDetailScreen extends StatefulWidget {
 
 class _TareaDetailScreenState extends State<TareaDetailScreen> {
   late String _selectedState;
-  final List<String> _estados = ['pendiente', 'en progreso', 'finalizado'];
+  final List<String> _estados = ['pendiente', 'en progreso', 'finalizado', 'estancado'];
   final ImagePicker _imagePicker = ImagePicker();
   CloudinaryService get _cloudinaryService => di.getIt<CloudinaryService>();
   List<String> _pendingEvidences = [];
@@ -49,10 +50,14 @@ class _TareaDetailScreenState extends State<TareaDetailScreen> {
   bool _userModifiedState = false;
   String? _lastKnownTareaState;
   bool _isUserSelecting = false;
+  // Comentado: Campo de costo
+  // bool _isEditingCosto = false; // Flag para saber si el usuario está editando el costo
 
   late TextEditingController _nameController;
   late TextEditingController _descriptionController;
   late TextEditingController _durationController;
+  // Comentado: Campo de costo
+  // late TextEditingController _costoController; // Solo para admin
 
   bool get isAdmin {
     if (widget.user != null) {
@@ -93,6 +98,12 @@ class _TareaDetailScreenState extends State<TareaDetailScreen> {
         normalized == 'finalizado') {
       return 'finalizado';
     }
+    if (cleanNormalized == 'estancado' ||
+        cleanNormalized == 'estancada' ||
+        cleanNormalized == 'stalled' ||
+        normalized == 'estancado') {
+      return 'estancado';
+    }
     return 'pendiente';
   }
 
@@ -106,6 +117,12 @@ class _TareaDetailScreenState extends State<TareaDetailScreen> {
     _durationController = TextEditingController(
       text: widget.tarea.duration.toString(),
     );
+    // Comentado: Campo de costo
+    // _costoController = TextEditingController(
+    //   text: widget.tarea.costo != null 
+    //       ? '\$ ${FormatUtils.formatNumberWithSeparators(widget.tarea.costo!.toInt())}'
+    //       : '',
+    // );
 
     final normalizedState = _normalizeState(widget.tarea.state);
     _selectedState = normalizedState;
@@ -118,6 +135,8 @@ class _TareaDetailScreenState extends State<TareaDetailScreen> {
     _nameController.dispose();
     _descriptionController.dispose();
     _durationController.dispose();
+    // Comentado: Campo de costo
+    // _costoController.dispose();
     super.dispose();
   }
 
@@ -204,9 +223,49 @@ class _TareaDetailScreenState extends State<TareaDetailScreen> {
                   _durationController.text = tarea.duration.toString();
                 });
               }
+              // Comentado: Campo de costo
+              // if (mounted && !_isEditingCosto) {
+              //   final costoFormatted = tarea.costo != null 
+              //       ? '\$ ${FormatUtils.formatNumberWithSeparators(tarea.costo!.toInt())}'
+              //       : '';
+              //   final currentCostoFormatted = _costoController.text.trim();
+              //   
+              //   // Comparar valores numéricos para evitar problemas de formato
+              //   final backendCostoValue = tarea.costo ?? 0;
+              //   final currentCostoValue = FormatUtils.parseCurrency(currentCostoFormatted) ?? 0;
+              //   
+              //   // Solo actualizar si el valor numérico cambió Y el usuario NO está editando
+              //   if (backendCostoValue != currentCostoValue && !_isEditingCosto) {
+              //     setState(() {
+              //       _costoController.text = costoFormatted;
+              //     });
+              //   }
+              // }
             });
           }
 
+          // Comentado: Campo de costo
+          // Si la tarea del Bloc tiene un costo diferente al que se usó para inicializar,
+          // actualizar el controlador (solo en la primera vez que se detecta y si el usuario NO está editando)
+          // if (mounted && isAdmin && !_isEditingCosto) {
+          //   final tareaCostoValue = tarea.costo ?? 0;
+          //   final currentCostoValue = FormatUtils.parseCurrency(_costoController.text.trim()) ?? 0;
+          //   // Si los valores son diferentes y el controlador tiene el valor inicial de widget.tarea,
+          //   // actualizar con el valor del Bloc
+          //   final initialCostoValue = widget.tarea.costo ?? 0;
+          //   if (tareaCostoValue != currentCostoValue && currentCostoValue == initialCostoValue && !_isEditingCosto) {
+          //     WidgetsBinding.instance.addPostFrameCallback((_) {
+          //       if (mounted && !_isEditingCosto) {
+          //         setState(() {
+          //           _costoController.text = tarea.costo != null 
+          //               ? '\$ ${FormatUtils.formatNumberWithSeparators(tarea.costo!.toInt())}'
+          //               : '';
+          //         });
+          //       }
+          //     });
+          //   }
+          // }
+          
           return RefreshIndicator(
             onRefresh: () async {
               context.read<ObraBloc>().add(const LoadObras());
@@ -574,6 +633,61 @@ class _TareaDetailScreenState extends State<TareaDetailScreen> {
                   contentPadding: const EdgeInsets.all(16),
                 ),
               ),
+              const SizedBox(height: 16),
+              // Comentado: Campo de costo
+              // Costo: solo para admin
+              // Text(
+              //   'Costo',
+              //   style: textTheme.labelMedium?.copyWith(
+              //     color: isDark ? Colors.white54 : Colors.black54,
+              //   ),
+              // ),
+              // const SizedBox(height: 8),
+              // TextFormField(
+              //   controller: _costoController,
+              //   enabled: true,
+              //   onTap: () {
+              //     // Marcar que el usuario está editando
+              //     _isEditingCosto = true;
+              //   },
+              //   onChanged: (_) {
+              //     // Marcar que el usuario está editando
+              //     _isEditingCosto = true;
+              //     // Forzar rebuild para actualizar el botón de guardar
+              //     setState(() {});
+              //   },
+              //   keyboardType: const TextInputType.numberWithOptions(decimal: false),
+              //   inputFormatters: [
+              //     CurrencyInputFormatter(),
+              //   ],
+              //   style: textTheme.bodyLarge?.copyWith(
+              //     color: isDark ? Colors.white : Colors.black87,
+              //   ),
+              //   decoration: InputDecoration(
+              //     // hintText: '\$0',
+              //     filled: true,
+              //     fillColor: isDark
+              //         ? const Color(0xFF1B1B1B)
+              //         : Colors.grey.shade50,
+              //     border: OutlineInputBorder(
+              //       borderRadius: BorderRadius.circular(12),
+              //       borderSide: BorderSide.none,
+              //     ),
+              //     enabledBorder: OutlineInputBorder(
+              //       borderRadius: BorderRadius.circular(12),
+              //       borderSide: BorderSide(
+              //         color: isDark
+              //             ? Colors.white.withValues(alpha: 0.1)
+              //             : Colors.grey.shade300,
+              //       ),
+              //     ),
+              //     focusedBorder: OutlineInputBorder(
+              //       borderRadius: BorderRadius.circular(12),
+              //       borderSide: BorderSide(color: TierraApp.primary, width: 2),
+              //     ),
+              //     contentPadding: const EdgeInsets.all(16),
+              //   ),
+              // ),
             ] else if (tarea.duration > 0) ...[
               TareaInfoRow(
                 icon: Icons.access_time,
@@ -947,13 +1061,18 @@ class _TareaDetailScreenState extends State<TareaDetailScreen> {
     final hasDurationChanges =
         isAdmin &&
         (int.tryParse(_durationController.text.trim()) ?? 0) != tarea.duration;
+    // Comentado: Campo de costo
+    // final hasCostoChanges = isAdmin && _hasCostoChanges(tarea);
 
     final canSave =
         (hasChanges ||
             hasEvidenceChanges ||
             hasNewEvidences ||
             hasDescriptionChanges ||
-            hasDurationChanges) &&
+            hasDurationChanges ||
+            // Comentado: Campo de costo
+            // hasCostoChanges
+            false) &&
         !_isUploading;
 
     return SizedBox(
@@ -1019,6 +1138,23 @@ class _TareaDetailScreenState extends State<TareaDetailScreen> {
         .toList();
     return newUrls.isNotEmpty;
   }
+
+  // Comentado: Campo de costo
+  // bool _hasCostoChanges(TareaEntity tarea) {
+  //   final costoFromInput = FormatUtils.parseCurrency(_costoController.text.trim());
+  //   // Comparar si el costo cambió
+  //   if (costoFromInput == null && tarea.costo == null) {
+  //     return false; // Ambos son null, no hay cambio
+  //   }
+  //   if (costoFromInput == null && tarea.costo != null) {
+  //     return true; // Se eliminó el costo
+  //   }
+  //   if (costoFromInput != null && tarea.costo == null) {
+  //     return true; // Se agregó un costo
+  //   }
+  //   // Comparar valores numéricos
+  //   return (costoFromInput ?? 0) != (tarea.costo ?? 0);
+  // }
 
   Future<void> _pickImageFromGallery(BuildContext context) async {
     try {
@@ -1134,6 +1270,9 @@ class _TareaDetailScreenState extends State<TareaDetailScreen> {
     final durationChanged =
         isAdmin &&
         (int.tryParse(_durationController.text.trim()) ?? 0) != tarea.duration;
+    // Comentado: Campo de costo
+    // final costoChanged = isAdmin && _hasCostoChanges(tarea);
+    final costoChanged = false;
 
     final validPendingEvidences = _pendingEvidences
         .where((e) => e.startsWith('http'))
@@ -1163,11 +1302,14 @@ class _TareaDetailScreenState extends State<TareaDetailScreen> {
       if (isAdmin &&
           (descriptionChanged ||
               durationChanged ||
+              costoChanged ||
               stateChanged ||
               evidenceChanged)) {
         final duration =
             int.tryParse(_durationController.text.trim()) ?? tarea.duration;
         final description = _descriptionController.text.trim();
+        // Comentado: Campo de costo
+        // final costo = FormatUtils.parseCurrency(_costoController.text.trim());
 
         String finalState = _selectedState;
 
@@ -1181,6 +1323,8 @@ class _TareaDetailScreenState extends State<TareaDetailScreen> {
           assignedTo: tarea.assignedTo,
           observation: tarea.observation,
           obraTareaId: tarea.obraTareaId,
+          // Comentado: Campo de costo
+          costo: tarea.costo, // Mantener el costo original
         );
 
         tareaBloc.add(UpdateTarea(updatedTarea, obraId));

@@ -1,3 +1,4 @@
+import 'dart:io';
 import '../../core/repositories/obra_repository.dart';
 import '../../core/entities/obra_entity.dart';
 
@@ -64,6 +65,30 @@ class UpdateObraUseCase {
 
   Future<ObraEntity> call(ObraEntity obra) async {
     return await _repository.updateObra(obra);
+  }
+}
+
+/// Use case para procesar un documento y crear una obra
+class ProcessDocumentUseCase {
+  final ObraRepository _repository;
+
+  ProcessDocumentUseCase(this._repository);
+
+  Future<ObraEntity> call(File file) async {
+    return await _repository.processDocument(file);
+  }
+}
+
+/// Use case para actualizar los estados de todas las obras
+class UpdateObrasEstadosUseCase {
+  final ObraRepository _repository;
+
+  UpdateObrasEstadosUseCase(this._repository);
+
+  /// Actualiza los estados de todas las obras basándose en el estado de sus tareas
+  /// Retorna un mapa con las estadísticas: {total, actualizadas, noActualizadas}
+  Future<Map<String, int>> call() async {
+    return await _repository.updateObrasEstados();
   }
 }
 

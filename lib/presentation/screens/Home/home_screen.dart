@@ -1,9 +1,12 @@
 // ignore_for_file: use_build_context_synchronously
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/entities/user_entity.dart' as core;
 import '../../app/app.dart';
 import '../../utils/user_role_utils.dart';
+import '../../bloc/obra/obra_bloc.dart';
+import '../../bloc/obra/obra_event.dart';
 import '../dashboard/dashboard_screen.dart';
 import '../obra/obras_list_screen.dart';
 import '../user/users_list_screen.dart';
@@ -21,6 +24,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
+  int? _previousIndex; // Track del índice anterior
 
   // Callback para cambiar a la vista de obras desde el dashboard
   void _navigateToObras() {
@@ -28,6 +32,16 @@ class _HomeScreenState extends State<HomeScreen> {
       // Si es admin, el índice de Obras es 1, si no es admin es 0
       _currentIndex = UserRoleUtils.isAdmin(widget.user) ? 1 : 0;
     });
+  }
+
+  // Obtener el índice de la pantalla de obras
+  int get _obrasIndex {
+    return UserRoleUtils.isAdmin(widget.user) ? 1 : 0;
+  }
+
+  // Obtener el índice del dashboard (solo para admin)
+  int? get _dashboardIndex {
+    return UserRoleUtils.isAdmin(widget.user) ? 0 : null;
   }
 
   // Lista de pantallas disponibles según el rol del usuario
@@ -120,6 +134,29 @@ class _HomeScreenState extends State<HomeScreen> {
     // Asegurar que el índice esté dentro del rango válido
     final validIndex = _currentIndex < _screens.length ? _currentIndex : 0;
 
+    // Detectar cuando se cambia a la pantalla de obras o dashboard por primera vez o desde otra pantalla
+    if ((validIndex == _obrasIndex || validIndex == _dashboardIndex) && 
+        _previousIndex != validIndex) {
+      _previousIndex = validIndex;
+      // Usar post frame callback para asegurar que el contexto esté disponible
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          context.read<ObraBloc>().add(const UpdateObrasEstados());
+        }
+      });
+    } else if (_previousIndex == null) {
+      // Primera vez que se construye, establecer el índice anterior
+      _previousIndex = validIndex;
+      // Si la primera pantalla es obras o dashboard, actualizar estados
+      if (validIndex == _obrasIndex || validIndex == _dashboardIndex) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            context.read<ObraBloc>().add(const UpdateObrasEstados());
+          }
+        });
+      }
+    }
+
     return Scaffold(
       body: IndexedStack(index: validIndex, children: _screens),
       bottomNavigationBar: Container(
@@ -182,7 +219,19 @@ class _HomeScreenState extends State<HomeScreen> {
         child: InkWell(
           onTap: () {
             setState(() {
+              final previousIndex = _currentIndex;
               _currentIndex = index;
+              
+              // Si cambiamos a la pantalla de obras o dashboard, actualizar estados
+              if ((index == _obrasIndex || index == _dashboardIndex) && 
+                  previousIndex != index) {
+                // Usar un post frame callback para asegurar que el contexto esté disponible
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) {
+                    context.read<ObraBloc>().add(const UpdateObrasEstados());
+                  }
+                });
+              }
             });
           },
           borderRadius: BorderRadius.circular(24),
