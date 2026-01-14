@@ -9,6 +9,7 @@ import '../../../core/entities/obra_entity.dart';
 import '../../../core/entities/user_entity.dart';
 import '../../../core/entities/tarea_entity.dart';
 import '../../../core/widgets/custom_snackbar.dart';
+import '../../../core/constants/colombian_cities.dart';
 import '../../bloc/obra/obra_bloc.dart';
 import '../../bloc/obra/obra_event.dart';
 // Imports para crear tareas en la obra
@@ -38,6 +39,10 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
   
   UserEntity? _selectedResponsable;
   final List<UserEntity> _availableUsers = [];
+  
+  // Selector de departamento y ciudad
+  String? _selectedDepartment;
+  String? _selectedCity;
   
   // Fecha de entrega de la obra
   DateTime? _fechaEntrega;
@@ -89,6 +94,33 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
     _costoController.dispose();
     _costoEstimadoController.dispose();
     super.dispose();
+  }
+
+  /// Encontrar el departamento que contiene una ciudad específica
+  /// Busca de forma case-insensitive y normalizada (sin acentos)
+  String? _findDepartmentForCity(String cityName) {
+    final normalizedCity = _normalizeString(cityName);
+    for (final entry in ColombianCities.departments.entries) {
+      for (final city in entry.value) {
+        if (_normalizeString(city) == normalizedCity) {
+          return entry.key;
+        }
+      }
+    }
+    return null;
+  }
+
+  /// Normalizar string para comparación (minúsculas, sin acentos)
+  String _normalizeString(String input) {
+    return input
+        .toLowerCase()
+        .replaceAll('á', 'a')
+        .replaceAll('é', 'e')
+        .replaceAll('í', 'i')
+        .replaceAll('ó', 'o')
+        .replaceAll('ú', 'u')
+        .replaceAll('ñ', 'n')
+        .trim();
   }
 
   Future<void> _loadUsers() async {
@@ -235,7 +267,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
         _titleController.text = obra.title;
         _descriptionController.text = obra.description;
         _locationController.text = obra.location;
-        _cityController.text = obra.city;
+        _cityController.text = obra.city; // Mantener para compatibilidad
         _costoController.text = FormatUtils.formatCurrency(obra.costo);
         if (obra.costoEstimado != null) {
           _costoEstimadoController.text = FormatUtils.formatCurrency(obra.costoEstimado!);
@@ -246,6 +278,48 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
           setState(() {
             _fechaEntrega = obra.fechaEntrega;
           });
+        }
+
+        // Pre-seleccionar departamento y ciudad si existe
+        if (obra.departamento != null && obra.departamento!.isNotEmpty) {
+          // Si la obra tiene departamento, usarlo directamente
+          final cities = ColombianCities.getCitiesForDepartment(obra.departamento!);
+          // Buscar la ciudad exacta en la lista
+          String? matchedCity;
+          if (obra.city.isNotEmpty) {
+            final normalizedObraCity = _normalizeString(obra.city);
+            for (final city in cities) {
+              if (_normalizeString(city) == normalizedObraCity) {
+                matchedCity = city;
+                break;
+              }
+            }
+          }
+          
+          setState(() {
+            _selectedDepartment = obra.departamento;
+            _selectedCity = matchedCity;
+          });
+        } else if (obra.city.isNotEmpty) {
+          // Si no tiene departamento, buscar por ciudad
+          final department = _findDepartmentForCity(obra.city);
+          if (department != null) {
+            final cities = ColombianCities.getCitiesForDepartment(department);
+            // Buscar la ciudad exacta en la lista
+            String? matchedCity;
+            final normalizedObraCity = _normalizeString(obra.city);
+            for (final city in cities) {
+              if (_normalizeString(city) == normalizedObraCity) {
+                matchedCity = city;
+                break;
+              }
+            }
+            
+            setState(() {
+              _selectedDepartment = department;
+              _selectedCity = matchedCity;
+            });
+          }
         }
 
         // Pre-seleccionar responsable si existe
@@ -637,6 +711,15 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
       return;
     }
 
+    // Validar que haya un departamento y ciudad seleccionados
+    if (_selectedDepartment == null || _selectedCity == null) {
+      CustomSnackBar.showError(
+        context,
+        message: 'Debes seleccionar un departamento y una ciudad',
+      );
+      return;
+    }
+
     // Validar fecha de entrega si está seleccionada
     if (_fechaEntrega != null) {
       final now = DateTime.now();
@@ -688,7 +771,8 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         location: _locationController.text.trim(),
-        city: _cityController.text.trim(),
+        city: _selectedCity ?? _cityController.text.trim(), // Usar selector si está disponible, sino el controller
+        departamento: _selectedDepartment, // Departamento seleccionado
         responsable: _selectedResponsable!,
         costo: costo,
         costoEstimado: costoEstimado,
@@ -1099,117 +1183,217 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                   },
                 ),
                 const SizedBox(height: 24),
-                // Ubicación y Ciudad
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Ubicación',
-                            style: textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w500,
-                              color: isDark ? Colors.white70 : Colors.black54,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _locationController,
-                            style: textTheme.bodyMedium?.copyWith(
-                              color: isDark ? Colors.white : Colors.black87,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Calle 123',
-                              hintStyle: textTheme.bodyMedium?.copyWith(
-                                color: isDark ? Colors.white38 : Colors.black38,
-                              ),
-                              filled: true,
-                              fillColor: isDark ? const Color(0xFF2B2B2B) : Colors.white,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide.none,
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.1),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: TierraApp.primary,
-                                  width: 2,
-                                ),
-                              ),
-                              contentPadding: const EdgeInsets.all(16),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Requerido';
-                              }
-                              return null;
-                            },
-                          ),
-                        ],
+                // Departamento
+                Text(
+                  'Departamento',
+                  style: textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? Colors.white70 : Colors.black54,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: _selectedDepartment,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    hintText: 'Selecciona un departamento',
+                    hintStyle: textTheme.bodyMedium?.copyWith(
+                      color: isDark ? Colors.white38 : Colors.black38,
+                    ),
+                    prefixIcon: const Icon(Icons.map_outlined),
+                    filled: true,
+                    fillColor: isDark ? const Color(0xFF2B2B2B) : Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.1),
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Ciudad',
-                            style: textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w500,
-                              color: isDark ? Colors.white70 : Colors.black54,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          TextFormField(
-                            controller: _cityController,
-                            style: textTheme.bodyMedium?.copyWith(
-                              color: isDark ? Colors.white : Colors.black87,
-                            ),
-                            decoration: InputDecoration(
-                              hintText: 'Bogota',
-                              hintStyle: textTheme.bodyMedium?.copyWith(
-                                color: isDark ? Colors.white38 : Colors.black38,
-                              ),
-                              filled: true,
-                              fillColor: isDark ? const Color(0xFF2B2B2B) : Colors.white,
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide.none,
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.1),
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(16),
-                                borderSide: BorderSide(
-                                  color: TierraApp.primary,
-                                  width: 2,
-                                ),
-                              ),
-                              contentPadding: const EdgeInsets.all(16),
-                            ),
-                            validator: (value) {
-                              if (value == null || value.trim().isEmpty) {
-                                return 'Requerido';
-                              }
-                              return null;
-                            },
-                          ),
-                        ],
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color: TierraApp.primary,
+                        width: 2,
                       ),
                     ),
-                  ],
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                  ),
+                  selectedItemBuilder: (BuildContext context) {
+                    if (_selectedDepartment == null) {
+                      return [
+                        Text(
+                          'Selecciona un departamento',
+                          overflow: TextOverflow.ellipsis,
+                          style: textTheme.bodyMedium?.copyWith(
+                            color: isDark ? Colors.white38 : Colors.black38,
+                          ),
+                        ),
+                      ];
+                    }
+                    return [
+                      Text(
+                        _selectedDepartment!,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodyMedium?.copyWith(
+                          color: isDark ? Colors.white : Colors.black87,
+                        ),
+                      ),
+                    ];
+                  },
+                  items: ColombianCities.departmentsList.map((department) {
+                    return DropdownMenuItem<String>(
+                      value: department,
+                      child: Text(
+                        department,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (value) {
+                    setState(() {
+                      _selectedDepartment = value;
+                      _selectedCity = null; // Reset ciudad cuando cambia el departamento
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Requerido';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+                // Ciudad
+                Text(
+                  'Ciudad',
+                  style: textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? Colors.white70 : Colors.black54,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                DropdownButtonFormField<String>(
+                  value: _selectedCity,
+                  isExpanded: true,
+                  decoration: InputDecoration(
+                    hintText: _selectedDepartment != null
+                        ? 'Selecciona una ciudad'
+                        : 'Primero selecciona un departamento',
+                    hintStyle: textTheme.bodyMedium?.copyWith(
+                      color: isDark ? Colors.white38 : Colors.black38,
+                    ),
+                    prefixIcon: const Icon(Icons.location_city_outlined),
+                    filled: true,
+                    fillColor: isDark ? const Color(0xFF2B2B2B) : Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.1),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color: TierraApp.primary,
+                        width: 2,
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
+                  ),
+                  selectedItemBuilder: _selectedCity != null
+                      ? (BuildContext context) {
+                          return [
+                            Text(
+                              _selectedCity!,
+                              overflow: TextOverflow.ellipsis,
+                              style: textTheme.bodyMedium?.copyWith(
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                            ),
+                          ];
+                        }
+                      : null,
+                  items: _selectedDepartment != null
+                      ? ColombianCities.getCitiesForDepartment(_selectedDepartment!)
+                          .map((city) {
+                            return DropdownMenuItem<String>(
+                              value: city,
+                              child: Text(
+                                city,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          }).toList()
+                      : [],
+                  onChanged: _selectedDepartment != null
+                      ? (value) {
+                          setState(() {
+                            _selectedCity = value;
+                          });
+                        }
+                      : null,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Requerido';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 24),
+                // Ubicación
+                Text(
+                  'Ubicación',
+                  style: textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: isDark ? Colors.white70 : Colors.black54,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _locationController,
+                  style: textTheme.bodyMedium?.copyWith(
+                    color: isDark ? Colors.white : Colors.black87,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Calle 123',
+                    hintStyle: textTheme.bodyMedium?.copyWith(
+                      color: isDark ? Colors.white38 : Colors.black38,
+                    ),
+                    filled: true,
+                    fillColor: isDark ? const Color(0xFF2B2B2B) : Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.1),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide(
+                        color: TierraApp.primary,
+                        width: 2,
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.all(16),
+                  ),
+                  validator: (value) {
+                    if (value == null || value.trim().isEmpty) {
+                      return 'Requerido';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 24),
                 // Costo y Costo Estimado
@@ -1653,7 +1837,6 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                 // Lista de tareas agregadas
                 if (_tareasToAdd.isNotEmpty)
                   Container(
-                    constraints: const BoxConstraints(maxHeight: 200),
                     decoration: BoxDecoration(
                       color: isDark ? const Color(0xFF2B2B2B) : Colors.white,
                       borderRadius: BorderRadius.circular(16),
@@ -1661,11 +1844,11 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                         color: (isDark ? Colors.white : Colors.black).withValues(alpha: 0.1),
                       ),
                     ),
-                    child: ListView.builder(
-                      shrinkWrap: true,
-                      itemCount: _tareasToAdd.length,
-                      itemBuilder: (context, index) {
-                        final tarea = _tareasToAdd[index];
+                    padding: const EdgeInsets.all(8),
+                    child: Column(
+                      children: _tareasToAdd.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final tarea = entry.value;
                         return Card(
                           margin: const EdgeInsets.only(bottom: 8),
                           color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.grey.shade100,
@@ -1735,7 +1918,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                             ),
                           ),
                         );
-                      },
+                      }).toList(),
                     ),
                   ),
                 const SizedBox(height: 12),

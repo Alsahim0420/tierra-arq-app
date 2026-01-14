@@ -312,6 +312,7 @@ class ObraDataSourceImpl implements ObraDataSource {
       description: data['description']?.toString() ?? '',
       location: data['location']?.toString() ?? '',
       city: data['city']?.toString() ?? '',
+      departamento: data['departamento']?.toString(),
       costo: (data['costo'] ?? data['cost'] ?? 0.0).toDouble(),
       costoEstimado: costoEstimado,
       costoFinal: costoFinal,
@@ -473,6 +474,7 @@ class ObraDataSourceImpl implements ObraDataSource {
         'description': obra.description,
         'location': obra.location,
         'city': obra.city,
+        if (obra.departamento != null) 'departamento': obra.departamento,
         'responsable': obra.responsable.id, // Solo enviar el ID del responsable
         'costo': obra.costo,
         if (obra.costoEstimado != null) 'costoEstimado': obra.costoEstimado,
@@ -662,6 +664,7 @@ class ObraDataSourceImpl implements ObraDataSource {
         'description': obra.description,
         'location': obra.location,
         'city': obra.city,
+        if (obra.departamento != null) 'departamento': obra.departamento,
         if (obra.responsable.id.isNotEmpty) 'responsable': obra.responsable.id,
         'costo': obra.costo,
         if (obra.costoEstimado != null) 'costoEstimado': obra.costoEstimado,

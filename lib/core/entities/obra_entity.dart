@@ -19,6 +19,7 @@ class ObraEntity {
     this.fechaInicio,
     this.fechaFin,
     this.fechaEntrega,
+    this.departamento,
   });
 
   final String id;
@@ -26,6 +27,7 @@ class ObraEntity {
   final String description;
   final String location;
   final String city;
+  final String? departamento; // Departamento de la obra (opcional)
   final List<TareaEntity> tareas;
   final UserEntity responsable;
   final double costo;
