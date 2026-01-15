@@ -42,13 +42,13 @@ class TareaBloc extends Bloc<TareaEvent, TareaState> {
     on<ClearSelection>(_onClearSelection);
   }
 
-  Future<void> _onLoadTareas(
-    LoadTareas event,
-    Emitter<TareaState> emit,
-  ) async {
+  Future<void> _onLoadTareas(LoadTareas event, Emitter<TareaState> emit) async {
     emit(const TareaLoading());
     try {
-      final tareas = await getTareasUseCase(page: event.page, limit: event.limit);
+      final tareas = await getTareasUseCase(
+        page: event.page,
+        limit: event.limit,
+      );
       emit(TareaLoaded(tareas: tareas));
     } catch (e) {
       emit(TareaError('Error al cargar tareas: $e'));
@@ -65,10 +65,7 @@ class TareaBloc extends Bloc<TareaEvent, TareaState> {
       if (tarea != null) {
         final currentState = state;
         if (currentState is TareaLoaded) {
-          emit(TareaLoaded(
-            tareas: currentState.tareas,
-            selectedTarea: tarea,
-          ));
+          emit(TareaLoaded(tareas: currentState.tareas, selectedTarea: tarea));
         } else {
           emit(TareaLoaded(tareas: [], selectedTarea: tarea));
         }
@@ -89,11 +86,13 @@ class TareaBloc extends Bloc<TareaEvent, TareaState> {
       final obraTarea = await getObraTareaByIdUseCase(event.obraTareaId);
       final currentState = state;
       if (currentState is TareaLoaded) {
-        emit(TareaLoaded(
-          tareas: currentState.tareas,
-          selectedTarea: currentState.selectedTarea,
-          selectedObraTarea: obraTarea,
-        ));
+        emit(
+          TareaLoaded(
+            tareas: currentState.tareas,
+            selectedTarea: currentState.selectedTarea,
+            selectedObraTarea: obraTarea,
+          ),
+        );
       } else {
         emit(TareaLoaded(tareas: [], selectedObraTarea: obraTarea));
       }
@@ -137,10 +136,12 @@ class TareaBloc extends Bloc<TareaEvent, TareaState> {
       final tarea = await createTareaUseCase(event.tarea, event.obraId);
       final currentState = state;
       if (currentState is TareaLoaded) {
-        emit(TareaLoaded(
-          tareas: [...currentState.tareas, tarea],
-          selectedTarea: currentState.selectedTarea,
-        ));
+        emit(
+          TareaLoaded(
+            tareas: [...currentState.tareas, tarea],
+            selectedTarea: currentState.selectedTarea,
+          ),
+        );
       } else {
         emit(TareaLoaded(tareas: [tarea]));
       }
@@ -161,14 +162,16 @@ class TareaBloc extends Bloc<TareaEvent, TareaState> {
         final updatedTareas = currentState.tareas.map((t) {
           return t.id == tarea.id ? tarea : t;
         }).toList();
-        emit(TareaLoaded(
-          tareas: updatedTareas,
-          selectedTarea: currentState.selectedTarea?.id == tarea.id
-              ? tarea
-              : currentState.selectedTarea,
-        ));
+        emit(
+          TareaLoaded(
+            tareas: updatedTareas,
+            selectedTarea: currentState.selectedTarea?.id == tarea.id
+                ? tarea
+                : currentState.selectedTarea,
+          ),
+        );
       } else {
-      // Si no hay estado cargado, crear uno nuevo con la tarea actualizada
+        // Si no hay estado cargado, crear uno nuevo con la tarea actualizada
         emit(TareaLoaded(tareas: [tarea], selectedTarea: tarea));
       }
     } catch (e) {
@@ -180,44 +183,88 @@ class TareaBloc extends Bloc<TareaEvent, TareaState> {
     UpdateTareaState event,
     Emitter<TareaState> emit,
   ) async {
-    developer.log('🔄 [TareaBloc] _onUpdateTareaState iniciado', name: 'TareaStateFlow');
-    developer.log('🔄 [TareaBloc] obraId: ${event.obraId}', name: 'TareaStateFlow');
-    developer.log('🔄 [TareaBloc] tareaId: ${event.tareaId}', name: 'TareaStateFlow');
-    developer.log('🔄 [TareaBloc] estado: ${event.state}', name: 'TareaStateFlow');
-    
+    developer.log(
+      '  [TareaBloc] _onUpdateTareaState iniciado',
+      name: 'TareaStateFlow',
+    );
+    developer.log(
+      '  [TareaBloc] obraId: ${event.obraId}',
+      name: 'TareaStateFlow',
+    );
+    developer.log(
+      '  [TareaBloc] tareaId: ${event.tareaId}',
+      name: 'TareaStateFlow',
+    );
+    developer.log(
+      '  [TareaBloc] estado: ${event.state}',
+      name: 'TareaStateFlow',
+    );
+
     emit(const TareaLoading());
     try {
-      developer.log('🔄 [TareaBloc] Llamando a updateTareaStateUseCase...', name: 'TareaStateFlow');
+      developer.log(
+        '  [TareaBloc] Llamando a updateTareaStateUseCase...',
+        name: 'TareaStateFlow',
+      );
       final tarea = await updateTareaStateUseCase(
         event.obraId,
         event.tareaId,
         event.state,
       );
-      developer.log('🔄 [TareaBloc] Tarea actualizada recibida', name: 'TareaStateFlow');
-      developer.log('🔄 [TareaBloc] Tarea - id: ${tarea.id}', name: 'TareaStateFlow');
-      developer.log('🔄 [TareaBloc] Tarea - state: ${tarea.state}', name: 'TareaStateFlow');
-      
+      developer.log(
+        '  [TareaBloc] Tarea actualizada recibida',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '  [TareaBloc] Tarea - id: ${tarea.id}',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '  [TareaBloc] Tarea - state: ${tarea.state}',
+        name: 'TareaStateFlow',
+      );
+
       final currentState = state;
       if (currentState is TareaLoaded) {
-        developer.log('🔄 [TareaBloc] Estado actual es TareaLoaded con ${currentState.tareas.length} tareas', name: 'TareaStateFlow');
+        developer.log(
+          '  [TareaBloc] Estado actual es TareaLoaded con ${currentState.tareas.length} tareas',
+          name: 'TareaStateFlow',
+        );
         final updatedTareas = currentState.tareas.map((t) {
           return t.id == tarea.id ? tarea : t;
         }).toList();
-        developer.log('🔄 [TareaBloc] Emitiendo TareaLoaded con ${updatedTareas.length} tareas', name: 'TareaStateFlow');
-        emit(TareaLoaded(
-          tareas: updatedTareas,
-          selectedTarea: currentState.selectedTarea?.id == tarea.id
-              ? tarea
-              : currentState.selectedTarea,
-        ));
+        developer.log(
+          '  [TareaBloc] Emitiendo TareaLoaded con ${updatedTareas.length} tareas',
+          name: 'TareaStateFlow',
+        );
+        emit(
+          TareaLoaded(
+            tareas: updatedTareas,
+            selectedTarea: currentState.selectedTarea?.id == tarea.id
+                ? tarea
+                : currentState.selectedTarea,
+          ),
+        );
       } else {
-        developer.log('🔄 [TareaBloc] Estado actual NO es TareaLoaded, creando nuevo estado', name: 'TareaStateFlow');
+        developer.log(
+          '  [TareaBloc] Estado actual NO es TareaLoaded, creando nuevo estado',
+          name: 'TareaStateFlow',
+        );
         emit(TareaLoaded(tareas: [tarea], selectedTarea: tarea));
       }
-      developer.log('🔄 [TareaBloc] _onUpdateTareaState completado exitosamente', name: 'TareaStateFlow');
+      developer.log(
+        '  [TareaBloc] _onUpdateTareaState completado exitosamente',
+        name: 'TareaStateFlow',
+      );
     } catch (e, stackTrace) {
-      developer.log('❌ [TareaBloc] Error en _onUpdateTareaState: $e', name: 'TareaStateFlow');
-      developer.log('❌ [TareaBloc] Stack trace: $stackTrace', name: 'TareaStateFlow');
+      developer.log(
+        '  [TareaBloc] Error en _onUpdateTareaState: $e',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '  [TareaBloc] Stack trace: $stackTrace',
+        name: 'TareaStateFlow',
+      );
       emit(TareaError('Error al actualizar estado de tarea: $e'));
     }
   }
@@ -238,12 +285,14 @@ class TareaBloc extends Bloc<TareaEvent, TareaState> {
         final updatedTareas = currentState.tareas.map((t) {
           return t.id == tarea.id ? tarea : t;
         }).toList();
-        emit(TareaLoaded(
-          tareas: updatedTareas,
-          selectedTarea: currentState.selectedTarea?.id == tarea.id
-              ? tarea
-              : currentState.selectedTarea,
-        ));
+        emit(
+          TareaLoaded(
+            tareas: updatedTareas,
+            selectedTarea: currentState.selectedTarea?.id == tarea.id
+                ? tarea
+                : currentState.selectedTarea,
+          ),
+        );
       } else {
         // Si no hay estado cargado, crear uno nuevo con la tarea actualizada
         emit(TareaLoaded(tareas: [tarea], selectedTarea: tarea));
@@ -262,44 +311,36 @@ class TareaBloc extends Bloc<TareaEvent, TareaState> {
       await deleteTareaUseCase(event.id, event.obraId);
       final currentState = state;
       if (currentState is TareaLoaded) {
-        final updatedTareas =
-            currentState.tareas.where((t) => t.id != event.id).toList();
-        emit(TareaLoaded(
-          tareas: updatedTareas,
-          selectedTarea: currentState.selectedTarea?.id == event.id
-              ? null
-              : currentState.selectedTarea,
-        ));
+        final updatedTareas = currentState.tareas
+            .where((t) => t.id != event.id)
+            .toList();
+        emit(
+          TareaLoaded(
+            tareas: updatedTareas,
+            selectedTarea: currentState.selectedTarea?.id == event.id
+                ? null
+                : currentState.selectedTarea,
+          ),
+        );
       }
     } catch (e) {
       emit(TareaError('Error al eliminar tarea: $e'));
     }
   }
 
-  void _onSelectTarea(
-    SelectTarea event,
-    Emitter<TareaState> emit,
-  ) {
+  void _onSelectTarea(SelectTarea event, Emitter<TareaState> emit) {
     final currentState = state;
     if (currentState is TareaLoaded) {
-      emit(TareaLoaded(
-        tareas: currentState.tareas,
-        selectedTarea: event.tarea,
-      ));
+      emit(
+        TareaLoaded(tareas: currentState.tareas, selectedTarea: event.tarea),
+      );
     }
   }
 
-  void _onClearSelection(
-    ClearSelection event,
-    Emitter<TareaState> emit,
-  ) {
+  void _onClearSelection(ClearSelection event, Emitter<TareaState> emit) {
     final currentState = state;
     if (currentState is TareaLoaded) {
-      emit(TareaLoaded(
-        tareas: currentState.tareas,
-        selectedTarea: null,
-      ));
+      emit(TareaLoaded(tareas: currentState.tareas, selectedTarea: null));
     }
   }
 }
-

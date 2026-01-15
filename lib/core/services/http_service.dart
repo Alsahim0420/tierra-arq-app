@@ -8,24 +8,15 @@ import 'token_storage_service.dart';
 import '../exceptions/app_exceptions.dart';
 
 /// Tipos de petición HTTP disponibles
-enum HttpMethod {
-  get,
-  post,
-  put,
-  delete,
-  patch,
-}
+enum HttpMethod { get, post, put, delete, patch }
 
 class HttpService {
   final TokenStorageService _tokenStorage;
   final String _baseUrl;
 
-  HttpService({
-    required TokenStorageService tokenStorage,
-    String? baseUrl,
-  })  : _tokenStorage = tokenStorage,
-        _baseUrl = baseUrl ?? 'https://tierra-platform-backend.vercel.app/api';
-
+  HttpService({required TokenStorageService tokenStorage, String? baseUrl})
+    : _tokenStorage = tokenStorage,
+      _baseUrl = baseUrl ?? 'https://tierra-platform-backend.vercel.app/api';
 
   Future<http.Response> request(
     HttpMethod method,
@@ -57,12 +48,7 @@ class HttpService {
         final newToken = await _refreshToken();
         if (newToken != null) {
           requestHeaders['Authorization'] = 'Bearer $newToken';
-          response = await _executeRequest(
-            method,
-            url,
-            requestHeaders,
-            body,
-          );
+          response = await _executeRequest(method, url, requestHeaders, body);
         }
       }
 
@@ -122,11 +108,7 @@ class HttpService {
           body: bodyJson,
         );
       case HttpMethod.put:
-        return await http.put(
-          Uri.parse(url),
-          headers: headers,
-          body: bodyJson,
-        );
+        return await http.put(Uri.parse(url), headers: headers, body: bodyJson);
       case HttpMethod.delete:
         return await http.delete(Uri.parse(url), headers: headers);
       case HttpMethod.patch:
@@ -215,13 +197,12 @@ class HttpService {
     String endpoint, {
     bool requiresAuth = true,
     Map<String, String>? headers,
-  }) =>
-      request(
-        HttpMethod.get,
-        endpoint,
-        requiresAuth: requiresAuth,
-        headers: headers,
-      );
+  }) => request(
+    HttpMethod.get,
+    endpoint,
+    requiresAuth: requiresAuth,
+    headers: headers,
+  );
 
   /// POST request
   Future<http.Response> post(
@@ -229,14 +210,13 @@ class HttpService {
     Map<String, dynamic>? body,
     bool requiresAuth = true,
     Map<String, String>? headers,
-  }) =>
-      request(
-        HttpMethod.post,
-        endpoint,
-        body: body,
-        requiresAuth: requiresAuth,
-        headers: headers,
-      );
+  }) => request(
+    HttpMethod.post,
+    endpoint,
+    body: body,
+    requiresAuth: requiresAuth,
+    headers: headers,
+  );
 
   /// PUT request
   Future<http.Response> put(
@@ -244,27 +224,25 @@ class HttpService {
     Map<String, dynamic>? body,
     bool requiresAuth = true,
     Map<String, String>? headers,
-  }) =>
-      request(
-        HttpMethod.put,
-        endpoint,
-        body: body,
-        requiresAuth: requiresAuth,
-        headers: headers,
-      );
+  }) => request(
+    HttpMethod.put,
+    endpoint,
+    body: body,
+    requiresAuth: requiresAuth,
+    headers: headers,
+  );
 
   /// DELETE request
   Future<http.Response> delete(
     String endpoint, {
     bool requiresAuth = true,
     Map<String, String>? headers,
-  }) =>
-      request(
-        HttpMethod.delete,
-        endpoint,
-        requiresAuth: requiresAuth,
-        headers: headers,
-      );
+  }) => request(
+    HttpMethod.delete,
+    endpoint,
+    requiresAuth: requiresAuth,
+    headers: headers,
+  );
 
   /// PATCH request
   Future<http.Response> patch(
@@ -272,14 +250,13 @@ class HttpService {
     Map<String, dynamic>? body,
     bool requiresAuth = true,
     Map<String, String>? headers,
-  }) =>
-      request(
-        HttpMethod.patch,
-        endpoint,
-        body: body,
-        requiresAuth: requiresAuth,
-        headers: headers,
-      );
+  }) => request(
+    HttpMethod.patch,
+    endpoint,
+    body: body,
+    requiresAuth: requiresAuth,
+    headers: headers,
+  );
 
   /// POST request con multipart/form-data (para subida de archivos)
   Future<http.Response> postMultipart(
@@ -313,18 +290,34 @@ class HttpService {
       final fileBytes = await file.readAsBytes();
       final fileName = file.path.split('/').last;
       final fileExtension = fileName.split('.').last.toLowerCase();
-      
-      developer.log('📤 [HttpService] Subiendo archivo:', name: 'TareaStateFlow');
-      developer.log('📤 [HttpService] Nombre: $fileName', name: 'TareaStateFlow');
-      developer.log('📤 [HttpService] Extensión: $fileExtension', name: 'TareaStateFlow');
-      developer.log('📤 [HttpService] Tamaño: ${fileBytes.length} bytes (${(fileBytes.length / 1024).toStringAsFixed(2)} KB)', name: 'TareaStateFlow');
-      developer.log('📤 [HttpService] Field name: $fieldName', name: 'TareaStateFlow');
-      
+
+      developer.log(
+        '📤 [HttpService] Subiendo archivo:',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '📤 [HttpService] Nombre: $fileName',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '📤 [HttpService] Extensión: $fileExtension',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '📤 [HttpService] Tamaño: ${fileBytes.length} bytes (${(fileBytes.length / 1024).toStringAsFixed(2)} KB)',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '📤 [HttpService] Field name: $fieldName',
+        name: 'TareaStateFlow',
+      );
+
       // Determinar Content-Type basado en la extensión
       String? contentType;
       switch (fileExtension) {
         case 'xlsx':
-          contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+          contentType =
+              'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
           break;
         case 'xls':
           contentType = 'application/vnd.ms-excel';
@@ -341,47 +334,83 @@ class HttpService {
         default:
           contentType = 'application/octet-stream';
       }
-      
-      developer.log('📤 [HttpService] Content-Type: $contentType', name: 'TareaStateFlow');
-      
+
+      developer.log(
+        '📤 [HttpService] Content-Type: $contentType',
+        name: 'TareaStateFlow',
+      );
+
       request.files.add(
         http.MultipartFile.fromBytes(
           fieldName,
           fileBytes,
           filename: fileName,
-          contentType: contentType != null 
-              ? http.MediaType.parse(contentType)
-              : null,
+
+          contentType: http.MediaType.parse(contentType),
         ),
       );
-      
+
       developer.log('📤 [HttpService] URL: $url', name: 'TareaStateFlow');
-      developer.log('📤 [HttpService] Headers: ${request.headers}', name: 'TareaStateFlow');
+      developer.log(
+        '📤 [HttpService] Headers: ${request.headers}',
+        name: 'TareaStateFlow',
+      );
 
       // Enviar request
-      developer.log('📤 [HttpService] Enviando petición multipart...', name: 'TareaStateFlow');
-      developer.log('📤 [HttpService] Total de archivos: ${request.files.length}', name: 'TareaStateFlow');
-      developer.log('📤 [HttpService] Total de campos: ${request.fields.length}', name: 'TareaStateFlow');
-      
+      developer.log(
+        '📤 [HttpService] Enviando petición multipart...',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '📤 [HttpService] Total de archivos: ${request.files.length}',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '📤 [HttpService] Total de campos: ${request.fields.length}',
+        name: 'TareaStateFlow',
+      );
+
       final streamedResponse = await request.send().timeout(
-        const Duration(minutes: 5), // Timeout de 5 minutos para archivos grandes
+        const Duration(
+          minutes: 5,
+        ), // Timeout de 5 minutos para archivos grandes
         onTimeout: () {
-          developer.log('❌ [HttpService] Timeout al enviar petición multipart', name: 'TareaStateFlow');
-          throw TimeoutException('La petición tardó demasiado. El archivo puede ser muy grande.');
+          developer.log(
+            '  [HttpService] Timeout al enviar petición multipart',
+            name: 'TareaStateFlow',
+          );
+          throw TimeoutException(
+            'La petición tardó demasiado. El archivo puede ser muy grande.',
+          );
         },
       );
-      developer.log('📤 [HttpService] StreamedResponse recibido, statusCode: ${streamedResponse.statusCode}', name: 'TareaStateFlow');
-      developer.log('📤 [HttpService] StreamedResponse headers: ${streamedResponse.headers}', name: 'TareaStateFlow');
-      
+      developer.log(
+        '📤 [HttpService] StreamedResponse recibido, statusCode: ${streamedResponse.statusCode}',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '📤 [HttpService] StreamedResponse headers: ${streamedResponse.headers}',
+        name: 'TareaStateFlow',
+      );
+
       final response = await http.Response.fromStream(streamedResponse).timeout(
         const Duration(minutes: 2), // Timeout para leer la respuesta
         onTimeout: () {
-          developer.log('❌ [HttpService] Timeout al leer respuesta', name: 'TareaStateFlow');
+          developer.log(
+            '  [HttpService] Timeout al leer respuesta',
+            name: 'TareaStateFlow',
+          );
           throw TimeoutException('La respuesta tardó demasiado en llegar.');
         },
       );
-      developer.log('📤 [HttpService] Response convertido, statusCode: ${response.statusCode}', name: 'TareaStateFlow');
-      developer.log('📤 [HttpService] Response body length: ${response.body.length} bytes', name: 'TareaStateFlow');
+      developer.log(
+        '📤 [HttpService] Response convertido, statusCode: ${response.statusCode}',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '📤 [HttpService] Response body length: ${response.body.length} bytes',
+        name: 'TareaStateFlow',
+      );
 
       // Si el token expiró, intentar refrescar y reintentar
       if (response.statusCode == 401 && requiresAuth) {
@@ -409,13 +438,21 @@ class HttpService {
     } on AppException {
       rethrow;
     } on http.ClientException catch (e) {
-      developer.log('❌ [HttpService] ClientException: $e', name: 'TareaStateFlow');
+      developer.log(
+        '  [HttpService] ClientException: $e',
+        name: 'TareaStateFlow',
+      );
       throw const NetworkException('Error de conexión. Verifica tu internet.');
     } catch (e, stackTrace) {
-      developer.log('❌ [HttpService] Exception inesperada: $e', name: 'TareaStateFlow');
-      developer.log('❌ [HttpService] Stack trace: $stackTrace', name: 'TareaStateFlow');
+      developer.log(
+        '  [HttpService] Exception inesperada: $e',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '  [HttpService] Stack trace: $stackTrace',
+        name: 'TareaStateFlow',
+      );
       throw UnknownException('Error inesperado: ${e.toString()}');
     }
   }
 }
-

@@ -39,13 +39,13 @@ class ObraDataSourceImpl implements ObraDataSource {
       final response = await _httpService.get(
         '/master/obra?estado=activas&page=1&limit=10',
       );
-      
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
 
         if (data.containsKey('data') && data['data'] is Map) {
           final dataObj = data['data'] as Map<String, dynamic>;
-          
+
           // Buscar la lista de obras en 'docs' (estructura paginada)
           if (dataObj.containsKey('docs') && dataObj['docs'] is List) {
             final obrasList = dataObj['docs'] as List;
@@ -53,7 +53,7 @@ class ObraDataSourceImpl implements ObraDataSource {
                 .map((item) => _mapObraFromApi(item as Map<String, dynamic>))
                 .toList();
           }
-          
+
           // Fallback: si viene la estructura antigua con 'obras' directamente
           if (dataObj.containsKey('obras') && dataObj['obras'] is List) {
             final obrasList = dataObj['obras'] as List;
@@ -76,7 +76,10 @@ class ObraDataSourceImpl implements ObraDataSource {
   }
 
   @override
-  Future<List<ObraEntity>> getObrasFinalizadas({int page = 1, int limit = 10}) async {
+  Future<List<ObraEntity>> getObrasFinalizadas({
+    int page = 1,
+    int limit = 10,
+  }) async {
     try {
       // Obtener el tipo de usuario
       final userType = await _getUserTypeFromToken();
@@ -87,23 +90,23 @@ class ObraDataSourceImpl implements ObraDataSource {
         if (userId.isEmpty) {
           return [];
         }
-        
+
         // Obtener todas las obras del responsable y filtrar las finalizadas
         final todasLasObras = await getObrasByResponsable(userId);
         final obrasFinalizadas = todasLasObras
             .where((obra) => obra.estado.toLowerCase() == 'finalizado')
             .toList();
-        
+
         return obrasFinalizadas;
       }
 
       // Si el usuario es 'admin' o tipo desconocido, obtener todas las obras finalizadas
-      
+
       // Usar el endpoint con parámetros de paginación, filtro de estado y ordenamiento
       final response = await _httpService.get(
         '/master/obra?estado=finalizadas&sort=updatedAt:desc&page=$page&limit=$limit',
       );
-      
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
 
@@ -111,7 +114,7 @@ class ObraDataSourceImpl implements ObraDataSource {
         // {"status":"success","data":{"docs":[...],"totalDocs":1,"limit":10,"page":1,...}}
         if (data.containsKey('data') && data['data'] is Map) {
           final dataObj = data['data'] as Map<String, dynamic>;
-          
+
           // Buscar la lista de obras en 'docs' (estructura paginada)
           if (dataObj.containsKey('docs') && dataObj['docs'] is List) {
             final obrasList = dataObj['docs'] as List;
@@ -119,7 +122,7 @@ class ObraDataSourceImpl implements ObraDataSource {
                 .map((item) => _mapObraFromApi(item as Map<String, dynamic>))
                 .toList();
           }
-          
+
           // Fallback: si viene la estructura antigua con 'obras' directamente
           if (dataObj.containsKey('obras') && dataObj['obras'] is List) {
             final obrasList = dataObj['obras'] as List;
@@ -132,15 +135,19 @@ class ObraDataSourceImpl implements ObraDataSource {
       } else if (response.statusCode == 404) {
         return [];
       } else {
-        throw ServerException('Error al obtener obras finalizadas', response.statusCode);
+        throw ServerException(
+          'Error al obtener obras finalizadas',
+          response.statusCode,
+        );
       }
     } on AppException {
       rethrow;
     } catch (e) {
-      throw UnknownException('Error al obtener obras finalizadas: ${e.toString()}');
+      throw UnknownException(
+        'Error al obtener obras finalizadas: ${e.toString()}',
+      );
     }
   }
-
 
   @override
   Future<List<ObraEntity>> getObrasByResponsable(String userId) async {
@@ -228,7 +235,8 @@ class ObraDataSourceImpl implements ObraDataSource {
       final Map<String, dynamic> decodedToken = JwtDecoder.decode(token);
 
       // Extraer el tipo de usuario del token
-      final userType = decodedToken['type']?.toString() ??
+      final userType =
+          decodedToken['type']?.toString() ??
           decodedToken['role']?.toString() ??
           '';
 
@@ -262,13 +270,17 @@ class ObraDataSourceImpl implements ObraDataSource {
     List<TareaEntity> tareas = _mapTareasFromApi(tareasList);
 
     // Mapear costoEstimado de forma segura
-    final costoEstimadoValue = data['costoEstimado'] ?? data['costo_estimado'] ?? data['estimatedCost'];
+    final costoEstimadoValue =
+        data['costoEstimado'] ??
+        data['costo_estimado'] ??
+        data['estimatedCost'];
     final double? costoEstimado = costoEstimadoValue != null
         ? (costoEstimadoValue as num).toDouble()
         : null;
-    
+
     // Mapear costoFinal de forma segura
-    final costoFinalValue = data['costoFinal'] ?? data['costo_final'] ?? data['finalCost'];
+    final costoFinalValue =
+        data['costoFinal'] ?? data['costo_final'] ?? data['finalCost'];
     double? costoFinal;
     if (costoFinalValue != null) {
       if (costoFinalValue is num) {
@@ -277,7 +289,7 @@ class ObraDataSourceImpl implements ObraDataSource {
         costoFinal = double.tryParse(costoFinalValue);
       }
     }
-    
+
     // Mapear fechas de forma segura
     DateTime? fechaInicio;
     if (data['fecha_inicio'] != null) {
@@ -287,7 +299,7 @@ class ObraDataSourceImpl implements ObraDataSource {
         fechaInicio = null;
       }
     }
-    
+
     DateTime? fechaFin;
     if (data['fecha_fin'] != null) {
       try {
@@ -296,7 +308,7 @@ class ObraDataSourceImpl implements ObraDataSource {
         fechaFin = null;
       }
     }
-    
+
     DateTime? fechaEntrega;
     if (data['fecha_entrega'] != null) {
       try {
@@ -305,7 +317,7 @@ class ObraDataSourceImpl implements ObraDataSource {
         fechaEntrega = null;
       }
     }
-    
+
     final obra = ObraEntity(
       id: data['_id']?.toString() ?? data['id']?.toString() ?? '',
       title: data['title']?.toString() ?? data['name']?.toString() ?? '',
@@ -336,7 +348,7 @@ class ObraDataSourceImpl implements ObraDataSource {
         phone = int.tryParse(data['phone'].toString());
       }
     }
-    
+
     int? dni;
     if (data['dni'] != null) {
       if (data['dni'] is int) {
@@ -345,7 +357,7 @@ class ObraDataSourceImpl implements ObraDataSource {
         dni = int.tryParse(data['dni'].toString());
       }
     }
-    
+
     return UserEntity(
       id: data['_id']?.toString() ?? data['id']?.toString() ?? '',
       email: data['email']?.toString() ?? '',
@@ -390,7 +402,7 @@ class ObraDataSourceImpl implements ObraDataSource {
         .entries
         .map((entry) {
           final item = entry.value;
-          
+
           if (item is! Map<String, dynamic>) {
             return null;
           }
@@ -408,25 +420,27 @@ class ObraDataSourceImpl implements ObraDataSource {
           }
 
           List<String> evidences = [];
-          if (tareaData['evidences'] != null && tareaData['evidences'] is List) {
+          if (tareaData['evidences'] != null &&
+              tareaData['evidences'] is List) {
             evidences = (tareaData['evidences'] as List)
                 .map((e) => e.toString())
                 .toList();
           }
 
           final obraTareaId = tareaData['obra_tarea_id']?.toString();
-          final tareaId = tareaData['_id']?.toString() ??
-              tareaData['id']?.toString() ??
-              '';
-          final tareaName = tareaData['title']?.toString() ??
+          final tareaId =
+              tareaData['_id']?.toString() ?? tareaData['id']?.toString() ?? '';
+          final tareaName =
+              tareaData['title']?.toString() ??
               tareaData['name']?.toString() ??
               '';
           final tareaDescription = tareaData['description']?.toString() ?? '';
-          final tareaStateRaw = tareaData['status']?.toString() ??
+          final tareaStateRaw =
+              tareaData['status']?.toString() ??
               tareaData['state']?.toString() ??
               'pendiente';
           final tareaState = _normalizeTareaState(tareaStateRaw);
-          
+
           int duration = 0;
           if (tareaData['duration'] != null) {
             if (tareaData['duration'] is int) {
@@ -435,9 +449,9 @@ class ObraDataSourceImpl implements ObraDataSource {
               duration = int.tryParse(tareaData['duration'].toString()) ?? 0;
             }
           }
-          
+
           final tareaObservation = tareaData['observation']?.toString();
-          
+
           // Mapear costo si existe
           double? costo;
           if (tareaData['costo'] != null) {
@@ -448,7 +462,7 @@ class ObraDataSourceImpl implements ObraDataSource {
               costo = double.tryParse(costoValue);
             }
           }
-          
+
           return TareaEntity(
             id: tareaId,
             name: tareaName,
@@ -478,8 +492,10 @@ class ObraDataSourceImpl implements ObraDataSource {
         'responsable': obra.responsable.id, // Solo enviar el ID del responsable
         'costo': obra.costo,
         if (obra.costoEstimado != null) 'costoEstimado': obra.costoEstimado,
-        if (obra.fechaInicio != null) 'fecha_inicio': obra.fechaInicio!.toIso8601String(),
-        if (obra.fechaEntrega != null) 'fechaEntrega': obra.fechaEntrega!.toIso8601String(),
+        if (obra.fechaInicio != null)
+          'fecha_inicio': obra.fechaInicio!.toIso8601String(),
+        if (obra.fechaEntrega != null)
+          'fechaEntrega': obra.fechaEntrega!.toIso8601String(),
       };
 
       // Si hay tareas asociadas, extraer solo los IDs y agregarlos al body
@@ -488,20 +504,17 @@ class ObraDataSourceImpl implements ObraDataSource {
             .where((tarea) => tarea.id.isNotEmpty) // Solo IDs válidos
             .map((tarea) => tarea.id)
             .toList();
-        
+
         if (tareaIds.isNotEmpty) {
           body['tareas'] = tareaIds;
         }
       }
 
-      final response = await _httpService.post(
-        '/master/obra',
-        body: body,
-      );
+      final response = await _httpService.post('/master/obra', body: body);
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        
+
         // La respuesta puede venir en diferentes formatos
         Map<String, dynamic> obraData;
         if (data.containsKey('data')) {
@@ -568,30 +581,51 @@ class ObraDataSourceImpl implements ObraDataSource {
   @override
   Future<ObraEntity> processDocument(File file) async {
     try {
-      developer.log('📄 [ProcessDocument] Iniciando procesamiento de documento', name: 'TareaStateFlow');
-      developer.log('📄 [ProcessDocument] Llamando a postMultipart...', name: 'TareaStateFlow');
-      
+      developer.log(
+        '📄 [ProcessDocument] Iniciando procesamiento de documento',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '📄 [ProcessDocument] Llamando a postMultipart...',
+        name: 'TareaStateFlow',
+      );
+
       final response = await _httpService.postMultipart(
         '/master/documento/procesar',
         file: file,
         fieldName: 'documento',
       );
 
-      developer.log('📄 [ProcessDocument] postMultipart completado', name: 'TareaStateFlow');
-      developer.log('📄 [ProcessDocument] Response status: ${response.statusCode}', name: 'TareaStateFlow');
-      developer.log('📄 [ProcessDocument] Response body: ${response.body}', name: 'TareaStateFlow');
+      developer.log(
+        '📄 [ProcessDocument] postMultipart completado',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '📄 [ProcessDocument] Response status: ${response.statusCode}',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '📄 [ProcessDocument] Response body: ${response.body}',
+        name: 'TareaStateFlow',
+      );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        
+
         // La respuesta viene con estructura: { status, message, obra, processing_time_ms }
         if (data.containsKey('obra') && data['obra'] is Map) {
           final obraData = data['obra'] as Map<String, dynamic>;
           final obra = _mapObraFromApi(obraData);
-          
-          developer.log('📄 [ProcessDocument] Obra procesada exitosamente: ${obra.id}', name: 'TareaStateFlow');
-          developer.log('📄 [ProcessDocument] Tareas procesadas: ${obra.tareas.length}', name: 'TareaStateFlow');
-          
+
+          developer.log(
+            '📄 [ProcessDocument] Obra procesada exitosamente: ${obra.id}',
+            name: 'TareaStateFlow',
+          );
+          developer.log(
+            '📄 [ProcessDocument] Tareas procesadas: ${obra.tareas.length}',
+            name: 'TareaStateFlow',
+          );
+
           return obra;
         } else {
           throw ServerException(
@@ -602,50 +636,76 @@ class ObraDataSourceImpl implements ObraDataSource {
       } else if (response.statusCode == 401) {
         throw const AuthenticationException('No autorizado');
       } else if (response.statusCode >= 500) {
-        String errorMessage = 'Error interno del servidor al procesar el documento';
+        String errorMessage =
+            'Error interno del servidor al procesar el documento';
         try {
           final errorData = jsonDecode(response.body) as Map<String, dynamic>;
           // Intentar obtener el mensaje de error de diferentes campos posibles
-          errorMessage = errorData['message']?.toString() ?? 
-                        errorData['error']?.toString() ?? 
-                        errorData['msg']?.toString() ?? 
-                        errorMessage;
-          
+          errorMessage =
+              errorData['message']?.toString() ??
+              errorData['error']?.toString() ??
+              errorData['msg']?.toString() ??
+              errorMessage;
+
           // Si hay detalles adicionales, agregarlos al log
           if (errorData.containsKey('details')) {
-            developer.log('📄 [ProcessDocument] Error details: ${errorData['details']}', name: 'TareaStateFlow');
+            developer.log(
+              '📄 [ProcessDocument] Error details: ${errorData['details']}',
+              name: 'TareaStateFlow',
+            );
           }
           if (errorData.containsKey('stack')) {
-            developer.log('📄 [ProcessDocument] Error stack: ${errorData['stack']}', name: 'TareaStateFlow');
+            developer.log(
+              '📄 [ProcessDocument] Error stack: ${errorData['stack']}',
+              name: 'TareaStateFlow',
+            );
           }
         } catch (e) {
           // Si no se puede parsear como JSON, usar el body completo o mensaje por defecto
-          developer.log('📄 [ProcessDocument] No se pudo parsear error como JSON: $e', name: 'TareaStateFlow');
-          if (response.body.isNotEmpty && !response.body.startsWith('<!DOCTYPE')) {
-            errorMessage = 'Error del servidor: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}';
+          developer.log(
+            '📄 [ProcessDocument] No se pudo parsear error como JSON: $e',
+            name: 'TareaStateFlow',
+          );
+          if (response.body.isNotEmpty &&
+              !response.body.startsWith('<!DOCTYPE')) {
+            errorMessage =
+                'Error del servidor: ${response.body.substring(0, response.body.length > 200 ? 200 : response.body.length)}';
           }
         }
-        developer.log('❌ [ProcessDocument] Error 500: $errorMessage', name: 'TareaStateFlow');
+        developer.log(
+          '  [ProcessDocument] Error 500: $errorMessage',
+          name: 'TareaStateFlow',
+        );
         throw ServerException(errorMessage, response.statusCode);
       } else {
         String errorMessage = 'Error al procesar documento';
         try {
           final errorData = jsonDecode(response.body) as Map<String, dynamic>;
-          errorMessage = errorData['message']?.toString() ?? 
-                        errorData['error']?.toString() ?? 
-                        errorData['msg']?.toString() ?? 
-                        errorMessage;
+          errorMessage =
+              errorData['message']?.toString() ??
+              errorData['error']?.toString() ??
+              errorData['msg']?.toString() ??
+              errorMessage;
         } catch (_) {
           // Si no se puede parsear el error, usar el mensaje por defecto
         }
-        developer.log('❌ [ProcessDocument] Error ${response.statusCode}: $errorMessage', name: 'TareaStateFlow');
+        developer.log(
+          '  [ProcessDocument] Error ${response.statusCode}: $errorMessage',
+          name: 'TareaStateFlow',
+        );
         throw ServerException(errorMessage, response.statusCode);
       }
     } on AppException {
       rethrow;
     } catch (e, stackTrace) {
-      developer.log('❌ [ProcessDocument] Exception: $e', name: 'TareaStateFlow');
-      developer.log('❌ [ProcessDocument] Stack trace: $stackTrace', name: 'TareaStateFlow');
+      developer.log(
+        '  [ProcessDocument] Exception: $e',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '  [ProcessDocument] Stack trace: $stackTrace',
+        name: 'TareaStateFlow',
+      );
       throw UnknownException('Error al procesar documento: ${e.toString()}');
     }
   }
@@ -653,8 +713,11 @@ class ObraDataSourceImpl implements ObraDataSource {
   @override
   Future<ObraEntity> updateObra(ObraEntity obra) async {
     try {
-      developer.log('🔄 [UpdateObra] Actualizando obra: ${obra.id}', name: 'TareaStateFlow');
-      
+      developer.log(
+        '  [UpdateObra] Actualizando obra: ${obra.id}',
+        name: 'TareaStateFlow',
+      );
+
       if (obra.id.isEmpty) {
         throw ValidationException('No se puede actualizar una obra sin ID');
       }
@@ -668,8 +731,10 @@ class ObraDataSourceImpl implements ObraDataSource {
         if (obra.responsable.id.isNotEmpty) 'responsable': obra.responsable.id,
         'costo': obra.costo,
         if (obra.costoEstimado != null) 'costoEstimado': obra.costoEstimado,
-        if (obra.fechaInicio != null) 'fecha_inicio': obra.fechaInicio!.toIso8601String(),
-        if (obra.fechaEntrega != null) 'fechaEntrega': obra.fechaEntrega!.toIso8601String(),
+        if (obra.fechaInicio != null)
+          'fecha_inicio': obra.fechaInicio!.toIso8601String(),
+        if (obra.fechaEntrega != null)
+          'fechaEntrega': obra.fechaEntrega!.toIso8601String(),
       };
 
       final response = await _httpService.put(
@@ -677,11 +742,14 @@ class ObraDataSourceImpl implements ObraDataSource {
         body: body,
       );
 
-      developer.log('🔄 [UpdateObra] Response status: ${response.statusCode}', name: 'TareaStateFlow');
+      developer.log(
+        '  [UpdateObra] Response status: ${response.statusCode}',
+        name: 'TareaStateFlow',
+      );
 
       if (response.statusCode == 200 || response.statusCode == 201) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        
+
         // La respuesta puede venir en diferentes formatos
         Map<String, dynamic> obraData;
         if (data.containsKey('data')) {
@@ -702,7 +770,10 @@ class ObraDataSourceImpl implements ObraDataSource {
         }
 
         final updatedObra = _mapObraFromApi(obraData);
-        developer.log('🔄 [UpdateObra] Obra actualizada exitosamente', name: 'TareaStateFlow');
+        developer.log(
+          '  [UpdateObra] Obra actualizada exitosamente',
+          name: 'TareaStateFlow',
+        );
         return updatedObra;
       } else if (response.statusCode == 401) {
         throw const AuthenticationException('No autorizado');
@@ -726,12 +797,15 @@ class ObraDataSourceImpl implements ObraDataSource {
     } on AppException {
       rethrow;
     } catch (e, stackTrace) {
-      developer.log('❌ [UpdateObra] Exception: $e', name: 'TareaStateFlow');
-      developer.log('❌ [UpdateObra] Stack trace: $stackTrace', name: 'TareaStateFlow');
+      developer.log('  [UpdateObra] Exception: $e', name: 'TareaStateFlow');
+      developer.log(
+        '  [UpdateObra] Stack trace: $stackTrace',
+        name: 'TareaStateFlow',
+      );
       throw UnknownException('Error al actualizar obra: ${e.toString()}');
     }
   }
-  
+
   @override
   Future<void> deleteObra(String id) async {
     // Método no implementado - no se usa en la aplicación actual
@@ -742,19 +816,28 @@ class ObraDataSourceImpl implements ObraDataSource {
   @override
   Future<Map<String, int>> updateObrasEstados() async {
     try {
-      developer.log('🔄 [ObraEstados] Iniciando actualización de estados de obras', name: 'TareaStateFlow');
-      
+      developer.log(
+        '  [ObraEstados] Iniciando actualización de estados de obras',
+        name: 'TareaStateFlow',
+      );
+
       final response = await _httpService.post(
         '/master/obra/actualizar-estados',
         body: {}, // Sin body según el curl proporcionado
       );
 
-      developer.log('🔄 [ObraEstados] Response status: ${response.statusCode}', name: 'TareaStateFlow');
-      developer.log('🔄 [ObraEstados] Response body: ${response.body}', name: 'TareaStateFlow');
+      developer.log(
+        '  [ObraEstados] Response status: ${response.statusCode}',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '  [ObraEstados] Response body: ${response.body}',
+        name: 'TareaStateFlow',
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        
+
         if (data.containsKey('resultado') && data['resultado'] is Map) {
           final resultado = data['resultado'] as Map<String, dynamic>;
           final stats = {
@@ -762,23 +845,38 @@ class ObraDataSourceImpl implements ObraDataSource {
             'actualizadas': resultado['actualizadas'] as int? ?? 0,
             'noActualizadas': resultado['noActualizadas'] as int? ?? 0,
           };
-          
-          developer.log('🔄 [ObraEstados] Estados actualizados exitosamente', name: 'TareaStateFlow');
-          developer.log('🔄 [ObraEstados] Total: ${stats['total']}, Actualizadas: ${stats['actualizadas']}, No actualizadas: ${stats['noActualizadas']}', name: 'TareaStateFlow');
-          
+
+          developer.log(
+            '  [ObraEstados] Estados actualizados exitosamente',
+            name: 'TareaStateFlow',
+          );
+          developer.log(
+            '  [ObraEstados] Total: ${stats['total']}, Actualizadas: ${stats['actualizadas']}, No actualizadas: ${stats['noActualizadas']}',
+            name: 'TareaStateFlow',
+          );
+
           return stats;
         } else {
-          developer.log('⚠️ [ObraEstados] Respuesta no contiene "resultado"', name: 'TareaStateFlow');
+          developer.log(
+            '  [ObraEstados] Respuesta no contiene "resultado"',
+            name: 'TareaStateFlow',
+          );
           throw ServerException(
             'Respuesta del servidor en formato inesperado',
             response.statusCode,
           );
         }
       } else if (response.statusCode == 401) {
-        developer.log('❌ [ObraEstados] Error 401: No autorizado', name: 'TareaStateFlow');
+        developer.log(
+          '  [ObraEstados] Error 401: No autorizado',
+          name: 'TareaStateFlow',
+        );
         throw const AuthenticationException('No autorizado');
       } else if (response.statusCode >= 500) {
-        developer.log('❌ [ObraEstados] Error ${response.statusCode}: Error del servidor', name: 'TareaStateFlow');
+        developer.log(
+          '  [ObraEstados] Error ${response.statusCode}: Error del servidor',
+          name: 'TareaStateFlow',
+        );
         throw ServerException(
           'El servidor no está disponible. Intenta más tarde.',
           response.statusCode,
@@ -791,15 +889,23 @@ class ObraDataSourceImpl implements ObraDataSource {
         } catch (_) {
           // Si no se puede parsear el error, usar el mensaje por defecto
         }
-        developer.log('❌ [ObraEstados] Error ${response.statusCode}: $errorMessage', name: 'TareaStateFlow');
+        developer.log(
+          '  [ObraEstados] Error ${response.statusCode}: $errorMessage',
+          name: 'TareaStateFlow',
+        );
         throw ServerException(errorMessage, response.statusCode);
       }
     } on AppException {
       rethrow;
     } catch (e, stackTrace) {
-      developer.log('❌ [ObraEstados] Exception: $e', name: 'TareaStateFlow');
-      developer.log('❌ [ObraEstados] Stack trace: $stackTrace', name: 'TareaStateFlow');
-      throw UnknownException('Error al actualizar estados de obras: ${e.toString()}');
+      developer.log('  [ObraEstados] Exception: $e', name: 'TareaStateFlow');
+      developer.log(
+        '  [ObraEstados] Stack trace: $stackTrace',
+        name: 'TareaStateFlow',
+      );
+      throw UnknownException(
+        'Error al actualizar estados de obras: ${e.toString()}',
+      );
     }
   }
 }

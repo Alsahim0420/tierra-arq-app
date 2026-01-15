@@ -53,7 +53,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (mounted) {
       final now = DateTime.now();
       // Evitar llamadas muy frecuentes (máximo una vez cada 5 segundos)
-      if (_lastUpdateTime == null || 
+      if (_lastUpdateTime == null ||
           now.difference(_lastUpdateTime!).inSeconds >= 5) {
         _lastUpdateTime = now;
         // Actualizar los estados de las obras basándose en las tareas
@@ -125,7 +125,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             const SizedBox(height: 16),
                             ElevatedButton(
                               onPressed: () {
-                                context.read<DashboardBloc>().add(const LoadDashboard());
+                                context.read<DashboardBloc>().add(
+                                  const LoadDashboard(),
+                                );
                               },
                               child: const Text('Reintentar'),
                             ),
@@ -158,20 +160,40 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   final obrasAdelantadas = dashboard.obrasAdelantadas;
                   // Usar ?? [] para manejar casos donde el estado anterior no tenga estos campos
                   final obrasATiempoLista = dashboard.obrasATiempoLista ?? [];
-                  final obrasRetrasadasLista = dashboard.obrasRetrasadasLista ?? [];
-                  final obrasAdelantadasLista = dashboard.obrasAdelantadasLista ?? [];
+                  final obrasRetrasadasLista =
+                      dashboard.obrasRetrasadasLista ?? [];
+                  final obrasAdelantadasLista =
+                      dashboard.obrasAdelantadasLista ?? [];
                   final obrasRecientes = dashboard.obrasRecientes;
-                  
+
                   // Logs para verificar las listas
-                  developer.log('📊 [DashboardScreen] Listas extraídas del dashboard:', name: 'DashboardScreen');
-                  developer.log('  - obrasATiempoLista: ${obrasATiempoLista.length} obras', name: 'DashboardScreen');
-                  developer.log('  - obrasRetrasadasLista: ${obrasRetrasadasLista.length} obras', name: 'DashboardScreen');
-                  developer.log('  - obrasAdelantadasLista: ${obrasAdelantadasLista.length} obras', name: 'DashboardScreen');
+                  developer.log(
+                    '📊 [DashboardScreen] Listas extraídas del dashboard:',
+                    name: 'DashboardScreen',
+                  );
+                  developer.log(
+                    '  - obrasATiempoLista: ${obrasATiempoLista.length} obras',
+                    name: 'DashboardScreen',
+                  );
+                  developer.log(
+                    '  - obrasRetrasadasLista: ${obrasRetrasadasLista.length} obras',
+                    name: 'DashboardScreen',
+                  );
+                  developer.log(
+                    '  - obrasAdelantadasLista: ${obrasAdelantadasLista.length} obras',
+                    name: 'DashboardScreen',
+                  );
                   if (obrasATiempoLista.isNotEmpty) {
-                    developer.log('  - Primera obra a tiempo: ${obrasATiempoLista.first.title}', name: 'DashboardScreen');
+                    developer.log(
+                      '  - Primera obra a tiempo: ${obrasATiempoLista.first.title}',
+                      name: 'DashboardScreen',
+                    );
                   }
                   if (obrasRetrasadasLista.isNotEmpty) {
-                    developer.log('  - Primera obra retrasada: ${obrasRetrasadasLista.first.title}', name: 'DashboardScreen');
+                    developer.log(
+                      '  - Primera obra retrasada: ${obrasRetrasadasLista.first.title}',
+                      name: 'DashboardScreen',
+                    );
                   }
 
                   return Padding(
@@ -523,8 +545,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         borderRadius: BorderRadius.circular(8),
                                       ),
                                       child: Icon(
-                                        dashboard.varianzaPresupuestaria >=
-                                                0
+                                        dashboard.varianzaPresupuestaria >= 0
                                             ? Icons.trending_up
                                             : Icons.trending_down,
                                         color:
@@ -1107,48 +1128,56 @@ class _DashboardScreenState extends State<DashboardScreen> {
     bool isDark,
     TextTheme textTheme,
   ) {
-    developer.log('📋 [DashboardScreen] _showObrasModal llamado:', name: 'DashboardScreen');
+    developer.log(
+      '  [DashboardScreen] _showObrasModal llamado:',
+      name: 'DashboardScreen',
+    );
     developer.log('  - Título: $title', name: 'DashboardScreen');
-    developer.log('  - Obras recibidas: ${obras.length}', name: 'DashboardScreen');
+    developer.log(
+      '  - Obras recibidas: ${obras.length}',
+      name: 'DashboardScreen',
+    );
     developer.log('  - Tipo filtro: $tipoFiltro', name: 'DashboardScreen');
     if (obras.isNotEmpty) {
-      developer.log('  - Primera obra: ${obras.first.title}', name: 'DashboardScreen');
+      developer.log(
+        '  - Primera obra: ${obras.first.title}',
+        name: 'DashboardScreen',
+      );
     }
-    
+
     // Filtrar obras según el tipo
     List<ObraEntity> obrasFiltradas = [];
 
     if (tipoFiltro == null) {
       // Mostrar todas las obras
       obrasFiltradas = obras;
-      developer.log('  - Obras filtradas (sin filtro): ${obrasFiltradas.length}', name: 'DashboardScreen');
+      developer.log(
+        '  - Obras filtradas (sin filtro): ${obrasFiltradas.length}',
+        name: 'DashboardScreen',
+      );
     } else if (tipoFiltro == 'activas') {
       // Filtrar obras activas (no finalizadas ni estancadas)
-      obrasFiltradas = obras
-          .where((o) {
-            final estado = o.estado.toLowerCase();
-            return estado != 'finalizado' && 
-                   estado != 'finalizada' &&
-                   estado != 'estancado' &&
-                   estado != 'estancada';
-          })
-          .toList();
+      obrasFiltradas = obras.where((o) {
+        final estado = o.estado.toLowerCase();
+        return estado != 'finalizado' &&
+            estado != 'finalizada' &&
+            estado != 'estancado' &&
+            estado != 'estancada';
+      }).toList();
     } else if (tipoFiltro == 'finalizadas') {
       // Filtrar obras finalizadas
-      obrasFiltradas = obras
-          .where((o) {
-            final estado = o.estado.toLowerCase();
-            return estado == 'finalizado' || estado == 'finalizada';
-          })
-          .toList();
+      obrasFiltradas = obras.where((o) {
+        final estado = o.estado.toLowerCase();
+        return estado == 'finalizado' || estado == 'finalizada';
+      }).toList();
     } else if (tipoFiltro == 'estancado' || tipoFiltro == 'estancada') {
       // Filtrar obras estancadas
-      obrasFiltradas = obras
-          .where((o) {
-            final estado = o.estado.toLowerCase();
-            return estado == 'estancado' || estado == 'estancada' || estado == 'stalled';
-          })
-          .toList();
+      obrasFiltradas = obras.where((o) {
+        final estado = o.estado.toLowerCase();
+        return estado == 'estancado' ||
+            estado == 'estancada' ||
+            estado == 'stalled';
+      }).toList();
     }
 
     showModalBottomSheet(

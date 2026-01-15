@@ -16,16 +16,14 @@ class DashboardEntity {
     required this.obrasATiempo,
     required this.obrasRetrasadas,
     required this.obrasAdelantadas,
-    List<ObraEntity>? obrasATiempoLista,
-    List<ObraEntity>? obrasRetrasadasLista,
-    List<ObraEntity>? obrasAdelantadasLista,
+    this.obrasATiempoLista,
+    this.obrasRetrasadasLista,
+    this.obrasAdelantadasLista,
     required this.obrasRecientes,
     this.porcentajeAvancePromedio,
     this.obrasEstancadas,
     this.tareasEstancadas,
-  }) : obrasATiempoLista = obrasATiempoLista,
-       obrasRetrasadasLista = obrasRetrasadasLista,
-       obrasAdelantadasLista = obrasAdelantadasLista;
+  });
 
   // Estadísticas de obras
   final int totalObras;
@@ -49,7 +47,7 @@ class DashboardEntity {
   final int obrasATiempo;
   final int obrasRetrasadas;
   final int obrasAdelantadas;
-  
+
   // Listas de obras por estado de cronograma (nullable para compatibilidad con estados anteriores)
   final List<ObraEntity>? obrasATiempoLista;
   final List<ObraEntity>? obrasRetrasadasLista;

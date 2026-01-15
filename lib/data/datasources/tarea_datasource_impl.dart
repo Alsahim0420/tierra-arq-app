@@ -12,9 +12,8 @@ import '../../core/exceptions/app_exceptions.dart';
 class TareaDataSourceImpl implements TareaDataSource {
   final HttpService _httpService;
 
-  TareaDataSourceImpl({
-    required HttpService httpService,
-  }) : _httpService = httpService;
+  TareaDataSourceImpl({required HttpService httpService})
+    : _httpService = httpService;
 
   @override
   Future<List<TareaEntity>> getTareas({int page = 1, int limit = 10}) async {
@@ -25,7 +24,7 @@ class TareaDataSourceImpl implements TareaDataSource {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        
+
         // La respuesta puede venir en diferentes formatos
         List<dynamic> tareasList = [];
         if (data.containsKey('data')) {
@@ -34,9 +33,11 @@ class TareaDataSourceImpl implements TareaDataSource {
             // La API devuelve las tareas en 'docs' cuando hay paginación
             if (dataObj.containsKey('docs') && dataObj['docs'] is List) {
               tareasList = dataObj['docs'] as List<dynamic>;
-            } else if (dataObj.containsKey('tareas') && dataObj['tareas'] is List) {
+            } else if (dataObj.containsKey('tareas') &&
+                dataObj['tareas'] is List) {
               tareasList = dataObj['tareas'] as List<dynamic>;
-            } else if (dataObj.containsKey('tasks') && dataObj['tasks'] is List) {
+            } else if (dataObj.containsKey('tasks') &&
+                dataObj['tasks'] is List) {
               tareasList = dataObj['tasks'] as List<dynamic>;
             }
           } else if (data['data'] is List) {
@@ -56,7 +57,7 @@ class TareaDataSourceImpl implements TareaDataSource {
                 try {
                   final tarea = _mapTareaFromApi(item);
                   return tarea;
-                // ignore: unused_catch_stack
+                  // ignore: unused_catch_stack
                 } catch (e, stackTrace) {
                   return null;
                 }
@@ -73,7 +74,7 @@ class TareaDataSourceImpl implements TareaDataSource {
         throw ServerException('Error al obtener tareas', response.statusCode);
       }
     } on AppException catch (e) {
-        rethrow;
+      rethrow;
     } catch (e, stackTrace) {
       throw UnknownException('Error al obtener tareas: ${e.toString()}');
     }
@@ -87,7 +88,7 @@ class TareaDataSourceImpl implements TareaDataSource {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        
+
         // La respuesta puede venir en diferentes formatos
         Map<String, dynamic> tareaData;
         if (data.containsKey('data')) {
@@ -125,12 +126,12 @@ class TareaDataSourceImpl implements TareaDataSource {
   Future<Map<String, dynamic>> getObraTareaById(String obraTareaId) async {
     try {
       final endpoint = '/master/obra-tarea/$obraTareaId';
-      
+
       final response = await _httpService.get(endpoint);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        
+
         // La respuesta tiene estructura: {"status":"success","obra_tarea":{...}}
         Map<String, dynamic> obraTareaData;
         if (data.containsKey('obra_tarea') && data['obra_tarea'] is Map) {
@@ -154,12 +155,17 @@ class TareaDataSourceImpl implements TareaDataSource {
       } else if (response.statusCode == 404) {
         throw ServerException('Obra-Tarea no encontrada', 404);
       } else {
-        throw ServerException('Error al obtener obra-tarea', response.statusCode);
+        throw ServerException(
+          'Error al obtener obra-tarea',
+          response.statusCode,
+        );
       }
     } on AppException {
       rethrow;
     } catch (e) {
-      throw UnknownException('Error al obtener obra-tarea por ID: ${e.toString()}');
+      throw UnknownException(
+        'Error al obtener obra-tarea por ID: ${e.toString()}',
+      );
     }
   }
 
@@ -172,7 +178,10 @@ class TareaDataSourceImpl implements TareaDataSource {
   }
 
   @override
-  Future<List<TareaEntity>> getTareasByUser(String userId) async => throw const ServerException('Endpoint de obtención de tareas por usuario no implementado');
+  Future<List<TareaEntity>> getTareasByUser(String userId) async =>
+      throw const ServerException(
+        'Endpoint de obtención de tareas por usuario no implementado',
+      );
 
   @override
   Future<TareaEntity> createTarea(TareaEntity tarea, String obraId) async {
@@ -205,14 +214,11 @@ class TareaDataSourceImpl implements TareaDataSource {
         };
       }
 
-      final response = await _httpService.post(
-        endpoint,
-        body: body,
-      );
+      final response = await _httpService.post(endpoint, body: body);
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        
+
         // La respuesta puede venir en diferentes formatos
         Map<String, dynamic> tareaData;
         if (data.containsKey('data')) {
@@ -272,7 +278,6 @@ class TareaDataSourceImpl implements TareaDataSource {
   @override
   Future<TareaEntity> updateTarea(TareaEntity tarea, String obraId) async {
     try {
-      
       // Construir el body según el formato del endpoint
       // Para tareas independientes: name, description, state, duration, observation (sin evidences)
       // Para tareas en obra: name, description, state, duration, observation, evidences, costo
@@ -282,18 +287,18 @@ class TareaDataSourceImpl implements TareaDataSource {
         'state': _normalizeStateForApi(tarea.state),
         'duration': tarea.duration,
       };
-      
+
       // Incluir observation
       // Si tiene contenido, agregarlo; si está vacío o es null, no incluirlo (según CURL)
       if (tarea.observation != null && tarea.observation!.isNotEmpty) {
         body['observation'] = tarea.observation;
       }
-      
+
       // Incluir costo si existe
       if (tarea.costo != null) {
         body['costo'] = tarea.costo;
       }
-      
+
       // Solo incluir evidences si la tarea está asociada a una obra (obraId no vacío)
       // Las tareas independientes no incluyen evidences en el body de edición según el CURL
       if (obraId.isNotEmpty) {
@@ -310,16 +315,11 @@ class TareaDataSourceImpl implements TareaDataSource {
         endpoint = '/master/tarea/${tarea.id}';
       }
 
-      
-      final response = await _httpService.put(
-        endpoint,
-        body: body,
-      );
-      
-      
+      final response = await _httpService.put(endpoint, body: body);
+
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        
+
         // La respuesta puede venir en diferentes formatos
         Map<String, dynamic> tareaData;
         if (data.containsKey('data')) {
@@ -340,9 +340,8 @@ class TareaDataSourceImpl implements TareaDataSource {
           tareaData = data;
         }
 
-        
         final mappedTarea = _mapTareaFromApi(tareaData);
-            return mappedTarea;
+        return mappedTarea;
       } else if (response.statusCode == 404) {
         throw const ServerException('Tarea no encontrada', 404);
       } else {
@@ -366,13 +365,13 @@ class TareaDataSourceImpl implements TareaDataSource {
   ) async {
     try {
       final response = await _httpService.put(
-        '/master/obra/$obraId/tarea/$tareaId', 
+        '/master/obra/$obraId/tarea/$tareaId',
         body: {'evidences': evidences},
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        
+
         // La respuesta puede venir en diferentes formatos
         Map<String, dynamic> tareaData;
         if (data.containsKey('data')) {
@@ -416,31 +415,52 @@ class TareaDataSourceImpl implements TareaDataSource {
     String state,
   ) async {
     try {
-      developer.log('🔄 [TareaState] Iniciando actualización de estado', name: 'TareaStateFlow');
-      developer.log('🔄 [TareaState] obraId: $obraId', name: 'TareaStateFlow');
-      developer.log('🔄 [TareaState] tareaId: $tareaId', name: 'TareaStateFlow');
-      developer.log('🔄 [TareaState] estado recibido: $state', name: 'TareaStateFlow');
-      
+      developer.log(
+        '  [TareaState] Iniciando actualización de estado',
+        name: 'TareaStateFlow',
+      );
+      developer.log('  [TareaState] obraId: $obraId', name: 'TareaStateFlow');
+      developer.log('  [TareaState] tareaId: $tareaId', name: 'TareaStateFlow');
+      developer.log(
+        '  [TareaState] estado recibido: $state',
+        name: 'TareaStateFlow',
+      );
+
       // Normalizar el estado para la API (convertir "en progreso" a "en_proceso")
       final normalizedState = _normalizeStateForApi(state);
-      developer.log('🔄 [TareaState] estado normalizado para API: $normalizedState', name: 'TareaStateFlow');
+      developer.log(
+        '  [TareaState] estado normalizado para API: $normalizedState',
+        name: 'TareaStateFlow',
+      );
 
       final url = '/master/obra/$obraId/tarea/$tareaId/estado';
-      developer.log('🔄 [TareaState] URL: $url', name: 'TareaStateFlow');
-      developer.log('🔄 [TareaState] Body: {"state": "$normalizedState"}', name: 'TareaStateFlow');
-      
+      developer.log('  [TareaState] URL: $url', name: 'TareaStateFlow');
+      developer.log(
+        '  [TareaState] Body: {"state": "$normalizedState"}',
+        name: 'TareaStateFlow',
+      );
+
       final response = await _httpService.put(
         url,
         body: {'state': normalizedState},
       );
 
-      developer.log('🔄 [TareaState] Response status: ${response.statusCode}', name: 'TareaStateFlow');
-      developer.log('🔄 [TareaState] Response body: ${response.body}', name: 'TareaStateFlow');
+      developer.log(
+        '  [TareaState] Response status: ${response.statusCode}',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '  [TareaState] Response body: ${response.body}',
+        name: 'TareaStateFlow',
+      );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        developer.log('🔄 [TareaState] Response data keys: ${data.keys}', name: 'TareaStateFlow');
-        
+        developer.log(
+          '  [TareaState] Response data keys: ${data.keys}',
+          name: 'TareaStateFlow',
+        );
+
         // La respuesta puede venir en diferentes formatos
         // Intentar obtener la tarea actualizada desde la respuesta
         Map<String, dynamic> tareaData;
@@ -449,49 +469,90 @@ class TareaDataSourceImpl implements TareaDataSource {
             final dataObj = data['data'] as Map<String, dynamic>;
             if (dataObj.containsKey('tarea')) {
               tareaData = dataObj['tarea'] as Map<String, dynamic>;
-              developer.log('🔄 [TareaState] Tarea encontrada en data.tarea', name: 'TareaStateFlow');
+              developer.log(
+                '  [TareaState] Tarea encontrada en data.tarea',
+                name: 'TareaStateFlow',
+              );
             } else {
               tareaData = dataObj;
-              developer.log('🔄 [TareaState] Tarea encontrada en data (directo)', name: 'TareaStateFlow');
+              developer.log(
+                '  [TareaState] Tarea encontrada en data (directo)',
+                name: 'TareaStateFlow',
+              );
             }
           } else {
             tareaData = {'_id': tareaId, 'state': normalizedState};
-            developer.log('🔄 [TareaState] Usando tareaData básico (data no es Map)', name: 'TareaStateFlow');
+            developer.log(
+              '  [TareaState] Usando tareaData básico (data no es Map)',
+              name: 'TareaStateFlow',
+            );
           }
         } else if (data.containsKey('tarea')) {
           tareaData = data['tarea'] as Map<String, dynamic>;
-          developer.log('🔄 [TareaState] Tarea encontrada en data.tarea (raíz)', name: 'TareaStateFlow');
+          developer.log(
+            '  [TareaState] Tarea encontrada en data.tarea (raíz)',
+            name: 'TareaStateFlow',
+          );
         } else {
           tareaData = {'_id': tareaId, 'state': normalizedState};
-          developer.log('🔄 [TareaState] Usando tareaData básico (no se encontró tarea en respuesta)', name: 'TareaStateFlow');
+          developer.log(
+            '  [TareaState] Usando tareaData básico (no se encontró tarea en respuesta)',
+            name: 'TareaStateFlow',
+          );
         }
 
-        developer.log('🔄 [TareaState] tareaData keys: ${tareaData.keys}', name: 'TareaStateFlow');
-        developer.log('🔄 [TareaState] tareaData.state: ${tareaData['state']}', name: 'TareaStateFlow');
-        
+        developer.log(
+          '  [TareaState] tareaData keys: ${tareaData.keys}',
+          name: 'TareaStateFlow',
+        );
+        developer.log(
+          '  [TareaState] tareaData.state: ${tareaData['state']}',
+          name: 'TareaStateFlow',
+        );
+
         final tareaMapeada = _mapTareaFromApi(tareaData);
-        developer.log('🔄 [TareaState] Tarea mapeada exitosamente', name: 'TareaStateFlow');
-        developer.log('🔄 [TareaState] Tarea mapeada - id: ${tareaMapeada.id}', name: 'TareaStateFlow');
-        developer.log('🔄 [TareaState] Tarea mapeada - state: ${tareaMapeada.state}', name: 'TareaStateFlow');
-        
+        developer.log(
+          '  [TareaState] Tarea mapeada exitosamente',
+          name: 'TareaStateFlow',
+        );
+        developer.log(
+          '  [TareaState] Tarea mapeada - id: ${tareaMapeada.id}',
+          name: 'TareaStateFlow',
+        );
+        developer.log(
+          '  [TareaState] Tarea mapeada - state: ${tareaMapeada.state}',
+          name: 'TareaStateFlow',
+        );
+
         return tareaMapeada;
       } else if (response.statusCode == 404) {
-        developer.log('❌ [TareaState] Error 404: Tarea no encontrada', name: 'TareaStateFlow');
+        developer.log(
+          '  [TareaState] Error 404: Tarea no encontrada',
+          name: 'TareaStateFlow',
+        );
         throw const ServerException('Tarea no encontrada', 404);
       } else {
-        developer.log('❌ [TareaState] Error ${response.statusCode}: ${response.body}', name: 'TareaStateFlow');
+        developer.log(
+          '  [TareaState] Error ${response.statusCode}: ${response.body}',
+          name: 'TareaStateFlow',
+        );
         throw ServerException(
           'Error al actualizar el estado de la tarea',
           response.statusCode,
         );
       }
     } on AppException catch (e) {
-      developer.log('❌ [TareaState] AppException: $e', name: 'TareaStateFlow');
+      developer.log('  [TareaState] AppException: $e', name: 'TareaStateFlow');
       rethrow;
     } catch (e, stackTrace) {
-      developer.log('❌ [TareaState] Exception: $e', name: 'TareaStateFlow');
-      developer.log('❌ [TareaState] Stack trace: $stackTrace', name: 'TareaStateFlow');
-      throw UnknownException('Error al actualizar estado de tarea: ${e.toString()}');
+      developer.log('  [TareaState] Exception: $e', name: 'TareaStateFlow');
+      developer.log(
+        '  [TareaState] Stack trace: $stackTrace',
+        name: 'TareaStateFlow',
+      );
+      throw UnknownException(
+        'Error al actualizar estado de tarea: ${e.toString()}',
+      );
     }
   }
 
@@ -502,7 +563,10 @@ class TareaDataSourceImpl implements TareaDataSource {
       if (response.statusCode == 200) {
         return;
       } else {
-        throw ServerException('Error al eliminar la tarea', response.statusCode);
+        throw ServerException(
+          'Error al eliminar la tarea',
+          response.statusCode,
+        );
       }
     } on AppException {
       rethrow;
@@ -561,7 +625,6 @@ class TareaDataSourceImpl implements TareaDataSource {
 
   /// Mapear respuesta del API a TareaEntity
   TareaEntity _mapTareaFromApi(Map<String, dynamic> data) {
-    
     try {
       // Mapear ID
       final id = data['_id']?.toString() ?? data['id']?.toString() ?? '';
@@ -570,9 +633,7 @@ class TareaDataSourceImpl implements TareaDataSource {
       }
 
       // Mapear name
-      final name = data['title']?.toString() ??
-          data['name']?.toString() ??
-          '';
+      final name = data['title']?.toString() ?? data['name']?.toString() ?? '';
       if (name.isEmpty) {
         throw Exception('Name de tarea es vacío o no existe');
       }
@@ -581,7 +642,8 @@ class TareaDataSourceImpl implements TareaDataSource {
       final description = data['description']?.toString() ?? '';
 
       // Mapear state
-      final stateRaw = data['status']?.toString() ??
+      final stateRaw =
+          data['status']?.toString() ??
           data['state']?.toString() ??
           'pendiente';
       final state = _normalizeStateFromApi(stateRaw);
@@ -613,8 +675,7 @@ class TareaDataSourceImpl implements TareaDataSource {
           // Continuar sin assignedTo si falla
           assignedTo = null;
         }
-      } else {
-      }
+      } else {}
 
       // Mapear evidences de forma segura
       List<String> evidences = [];
@@ -622,12 +683,11 @@ class TareaDataSourceImpl implements TareaDataSource {
         evidences = (data['evidences'] as List)
             .map((e) => e.toString())
             .toList();
-      } else {
-      }
+      } else {}
 
       // Mapear observation
       final observation = data['observation']?.toString();
-      
+
       // Mapear obraTareaId si existe
       final obraTareaId = data['obra_tarea_id']?.toString();
 
@@ -673,12 +733,15 @@ class TareaDataSourceImpl implements TareaDataSource {
           ? int.tryParse(data['phone'].toString())
           : null;
       final city = data['city']?.toString() ?? '';
-      final dni = data['dni'] != null ? int.tryParse(data['dni'].toString()) : null;
-
+      final dni = data['dni'] != null
+          ? int.tryParse(data['dni'].toString())
+          : null;
 
       // Validar solo ID (los demás campos pueden estar vacíos si es un usuario parcial)
       if (id.isEmpty) {
-        throw Exception('UserEntity requiere ID no vacío. Data recibida: $data');
+        throw Exception(
+          'UserEntity requiere ID no vacío. Data recibida: $data',
+        );
       }
 
       final user = UserEntity(
@@ -697,4 +760,3 @@ class TareaDataSourceImpl implements TareaDataSource {
     }
   }
 }
-

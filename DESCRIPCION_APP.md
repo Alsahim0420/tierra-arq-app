@@ -221,7 +221,7 @@ Aplicación móvil Flutter para la gestión y control de obras de construcción.
 
 ---
 
-### ✅ **5. TAREAS**
+###   **5. TAREAS**
 
 #### **TareaDetailScreen** (`tarea_detail_screen.dart`)
 - **Propósito**: Vista detallada y edición de tarea (pantalla completa)
@@ -339,7 +339,7 @@ Aplicación móvil Flutter para la gestión y control de obras de construcción.
 
 ---
 
-## 🔄 FLUJOS PRINCIPALES
+##   FLUJOS PRINCIPALES
 
 ### **FLUJO 1: Autenticación y Acceso**
 ```

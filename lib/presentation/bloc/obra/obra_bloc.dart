@@ -38,7 +38,7 @@ class ObraBloc extends Bloc<ObraEvent, ObraState> {
     emit(const ObrasActivasLoading());
     try {
       final obras = await getObrasUseCase();
-      
+
       // Deduplicar obras por ID para evitar duplicados
       final deduplicatedObras = <String, ObraEntity>{};
       for (final obra in obras) {
@@ -50,13 +50,9 @@ class ObraBloc extends Bloc<ObraEvent, ObraState> {
         }
       }
       final uniqueObras = deduplicatedObras.values.toList();
-      
-      // Log del estado de las tareas en cada obra
-      for (final obra in uniqueObras) {
-      }
-      
+
       emit(ObraLoaded(obras: uniqueObras));
-    } catch (e, stackTrace) {
+    } catch (e) {
       emit(ObraError('Error al cargar obras: $e'));
     }
   }
@@ -120,7 +116,7 @@ class ObraBloc extends Bloc<ObraEvent, ObraState> {
     }
     try {
       final obra = await createObraUseCase(event.obra);
-      
+
       if (previousState is ObraLoaded) {
         // Verificar si la obra ya existe en la lista para evitar duplicados
         final obraExists = previousState.obras.any((o) => o.id == obra.id);
@@ -239,18 +235,36 @@ class ObraBloc extends Bloc<ObraEvent, ObraState> {
     UpdateObrasEstados event,
     Emitter<ObraState> emit,
   ) async {
-    developer.log('🔄 [ObraBloc] _onUpdateObrasEstados iniciado', name: 'TareaStateFlow');
+    developer.log(
+      '  [ObraBloc] _onUpdateObrasEstados iniciado',
+      name: 'TareaStateFlow',
+    );
     try {
-      developer.log('🔄 [ObraBloc] Llamando a updateObrasEstadosUseCase...', name: 'TareaStateFlow');
+      developer.log(
+        '  [ObraBloc] Llamando a updateObrasEstadosUseCase...',
+        name: 'TareaStateFlow',
+      );
       final resultado = await updateObrasEstadosUseCase();
-      developer.log('🔄 [ObraBloc] Estados actualizados - Total: ${resultado['total']}, Actualizadas: ${resultado['actualizadas']}, No actualizadas: ${resultado['noActualizadas']}', name: 'TareaStateFlow');
-      
+      developer.log(
+        '  [ObraBloc] Estados actualizados - Total: ${resultado['total']}, Actualizadas: ${resultado['actualizadas']}, No actualizadas: ${resultado['noActualizadas']}',
+        name: 'TareaStateFlow',
+      );
+
       // Después de actualizar los estados, recargar las obras para reflejar los cambios
-      developer.log('🔄 [ObraBloc] Recargando obras después de actualizar estados...', name: 'TareaStateFlow');
+      developer.log(
+        '  [ObraBloc] Recargando obras después de actualizar estados...',
+        name: 'TareaStateFlow',
+      );
       add(const LoadObras());
     } catch (e, stackTrace) {
-      developer.log('❌ [ObraBloc] Error en _onUpdateObrasEstados: $e', name: 'TareaStateFlow');
-      developer.log('❌ [ObraBloc] Stack trace: $stackTrace', name: 'TareaStateFlow');
+      developer.log(
+        '  [ObraBloc] Error en _onUpdateObrasEstados: $e',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '  [ObraBloc] Stack trace: $stackTrace',
+        name: 'TareaStateFlow',
+      );
       emit(ObraError('Error al actualizar estados de obras: $e'));
     }
   }
