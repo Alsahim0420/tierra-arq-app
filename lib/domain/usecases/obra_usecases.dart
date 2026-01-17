@@ -1,6 +1,7 @@
 import 'dart:io';
 import '../../core/repositories/obra_repository.dart';
 import '../../core/entities/obra_entity.dart';
+import '../../core/entities/reporte_pdf_entity.dart';
 
 /// Use case para obtener todas las obras del usuario logueado
 class GetObrasUseCase {
@@ -100,5 +101,24 @@ class DeleteObraUseCase {
 
   Future<void> call(String id) async {
     return await _repository.deleteObra(id);
+  }
+}
+
+/// Use case para obtener los reportes PDF de una obra
+class GetReportesPdfUseCase {
+  final ObraRepository _repository;
+
+  GetReportesPdfUseCase(this._repository);
+
+  Future<List<ReportePdfEntity>> call({
+    required String obraId,
+    int page = 1,
+    int limit = 10,
+  }) async {
+    return await _repository.getReportesPdf(
+      obraId: obraId,
+      page: page,
+      limit: limit,
+    );
   }
 }

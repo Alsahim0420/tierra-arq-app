@@ -1,9 +1,10 @@
 import 'dart:io';
 import 'dart:convert';
+import 'dart:typed_data';
 import 'package:http/http.dart' as http;
 import 'package:crypto/crypto.dart';
 
-/// Servicio para subir imágenes a Cloudinary
+/// Servicio para subir imágenes y PDFs a Cloudinary
 class CloudinaryService {
   final String cloudName;
   final String apiKey;
@@ -82,6 +83,76 @@ class CloudinaryService {
       }
     } catch (e) {
       throw Exception('Error al subir imagen a Cloudinary: $e');
+    }
+  }
+
+  /// Subir un PDF a Cloudinary
+  /// 
+  /// [pdfBytes] - Bytes del PDF a subir (Uint8List)
+  /// [fileName] - Nombre del archivo PDF
+  /// [folder] - Carpeta opcional donde guardar el PDF
+  /// [publicId] - ID público opcional para el PDF
+  /// 
+  /// Retorna la URL pública del PDF subido
+  Future<String> uploadPdf(
+    Uint8List pdfBytes,
+    String fileName, {
+    String? folder,
+    String? publicId,
+  }) async {
+    try {
+      final timestamp = DateTime.now().millisecondsSinceEpoch.toString();
+
+      // Construir parámetros para la firma
+      final params = <String, String>{
+        'timestamp': timestamp,
+        if (folder != null) 'folder': folder,
+        if (publicId != null) 'public_id': publicId,
+      };
+
+      // Generar firma
+      final signature = _generateSignature(params);
+
+      // Construir URL de upload - usar raw/upload para PDFs
+      final uploadUrl = 'https://api.cloudinary.com/v1_1/$cloudName/raw/upload';
+
+      // Crear request multipart
+      final request = http.MultipartRequest('POST', Uri.parse(uploadUrl));
+      request.fields['api_key'] = apiKey;
+      request.fields['timestamp'] = timestamp;
+      request.fields['signature'] = signature;
+      if (folder != null) {
+        request.fields['folder'] = folder;
+      }
+      if (publicId != null) {
+        request.fields['public_id'] = publicId;
+      }
+
+      // Agregar el archivo PDF
+      request.files.add(
+        http.MultipartFile.fromBytes(
+          'file',
+          pdfBytes,
+          filename: fileName,
+        ),
+      );
+
+      // Enviar request
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final secureUrl = data['secure_url'] as String? ?? data['url'] as String;
+        return secureUrl;
+      } else {
+        final errorData = jsonDecode(response.body) as Map<String, dynamic>;
+        throw Exception(
+          'Error al subir PDF: ${errorData['error']?['message'] ?? response.statusCode}',
+        );
+      }
+    } catch (e) {
+      throw Exception('Error al subir PDF a Cloudinary: $e');
     }
   }
 
