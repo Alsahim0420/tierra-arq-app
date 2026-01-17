@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:printing/printing.dart';
+import 'package:pdf/pdf.dart';
+import 'dart:typed_data';
 import '../../../core/entities/obra_entity.dart';
 import '../../../core/entities/tarea_entity.dart';
 import '../../../core/entities/user_entity.dart' as core;
+import '../../../core/services/pdf_service.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/user_role_utils.dart';
 import '../tarea/tarea_detail_screen.dart';
@@ -38,17 +42,33 @@ class ObraDetailScreen extends StatelessWidget {
           currentObra = obra;
         }
 
-        return Scaffold(
-          appBar: AppBar(
-            title: Text(
-              currentObra.title,
-              style: textTheme.headlineSmall?.copyWith(
-                color: isDark ? Colors.white : Colors.black87,
-                letterSpacing: -0.4,
+        return BlocBuilder<AuthBloc, AuthState>(
+          builder: (authContext, authState) {
+            final isAdmin = authState is AuthAuthenticated &&
+                UserRoleUtils.isAdmin(authState.user);
+
+            return Scaffold(
+              appBar: AppBar(
+                title: Text(
+                  currentObra.title,
+                  style: textTheme.headlineSmall?.copyWith(
+                    color: isDark ? Colors.white : Colors.black87,
+                    letterSpacing: -0.4,
+                  ),
+                ),
+                actions: [
+                  if (isAdmin)
+                    IconButton(
+                      icon: const Icon(Icons.picture_as_pdf),
+                      tooltip: 'Generar PDF para cliente',
+                      onPressed: () => _generateAndDownloadPdf(
+                        context,
+                        currentObra,
+                      ),
+                    ),
+                ],
               ),
-            ),
-          ),
-          body: SingleChildScrollView(
+              body: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -478,7 +498,9 @@ class ObraDetailScreen extends StatelessWidget {
                   ),
               ],
             ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -508,4 +530,120 @@ class ObraDetailScreen extends StatelessWidget {
       ),
     );
   }
+
+  /// Genera y descarga el PDF del reporte de la obra para el cliente
+  Future<void> _generateAndDownloadPdf(
+    BuildContext context,
+    ObraEntity obra,
+  ) async {
+    try {
+      // Mostrar indicador de carga
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+
+      // Generar PDF
+      final pdfService = PdfService();
+      final pdfDocument = await pdfService.generateObraClientReport(obra);
+
+      // Cerrar el indicador de carga
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // Generar bytes del PDF
+      final pdfBytes = await pdfDocument.save();
+
+      // Mostrar pantalla de preview con opciones de compartir e imprimir
+      if (context.mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PdfPreviewScreen(
+              pdfBytes: pdfBytes,
+              fileName: 'Reporte_${obra.title.replaceAll(' ', '_')}.pdf',
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      // Cerrar el indicador de carga si está abierto
+      if (context.mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // Mostrar error
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al generar PDF: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 }
+
+/// Pantalla para mostrar preview del PDF con opciones de compartir e imprimir
+class PdfPreviewScreen extends StatelessWidget {
+  const PdfPreviewScreen({
+    super.key,
+    required this.pdfBytes,
+    required this.fileName,
+  });
+
+  final Uint8List pdfBytes;
+  final String fileName;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Vista Previa del PDF'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share),
+            tooltip: 'Compartir PDF',
+            onPressed: () => _sharePdf(context),
+          ),
+          IconButton(
+            icon: const Icon(Icons.print),
+            tooltip: 'Imprimir PDF',
+            onPressed: () => _printPdf(context),
+          ),
+        ],
+      ),
+      body: PdfPreview(
+        build: (format) => pdfBytes,
+        allowPrinting: true,
+        allowSharing: true,
+        canChangeOrientation: false,
+        canChangePageFormat: false,
+        canDebug: false,
+        pdfFileName: fileName,
+      ),
+    );
+  }
+
+  /// Compartir el PDF
+  Future<void> _sharePdf(BuildContext context) async {
+    await Printing.sharePdf(
+      bytes: pdfBytes,
+      filename: fileName,
+    );
+  }
+
+  /// Imprimir el PDF
+  Future<void> _printPdf(BuildContext context) async {
+    await Printing.layoutPdf(
+      onLayout: (format) async => pdfBytes,
+      format: PdfPageFormat.a4,
+    );
+  }
+}
+
