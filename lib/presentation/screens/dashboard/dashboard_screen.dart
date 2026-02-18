@@ -6,7 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/entities/user_entity.dart' as core;
 import '../../../core/entities/obra_entity.dart';
 import '../../../core/entities/tarea_entity.dart';
-import '../../app/app.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../bloc/dashboard/dashboard_bloc.dart';
 import '../../bloc/dashboard/dashboard_event.dart';
 import '../../bloc/dashboard/dashboard_state.dart';
@@ -80,7 +80,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             SliverAppBar(
               floating: false,
               pinned: true,
-              backgroundColor: TierraApp.getAppBarColor(isDark),
+              backgroundColor: AppColors.appBarColor(isDark),
               elevation: 0,
               flexibleSpace: FlexibleSpaceBar(
                 title: Text(
@@ -217,7 +217,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 icon: Icons.construction,
                                 label: 'Total',
                                 value: totalObras.toString(),
-                                color: TierraApp.primary,
+                                color: AppColors.primary,
                                 isDark: isDark,
                                 onTap: () => _showObrasModal(
                                   context,
@@ -305,7 +305,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 icon: Icons.task_alt,
                                 label: 'Total',
                                 value: totalTareas.toString(),
-                                color: TierraApp.primary,
+                                color: AppColors.primary,
                                 isDark: isDark,
                                 onTap: () => _showTareasModal(
                                   context,
@@ -767,7 +767,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     icon: const Icon(Icons.add),
                                     label: const Text('Crear Obra'),
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: TierraApp.primary,
+                                      backgroundColor: AppColors.primary,
                                       foregroundColor: Colors.white,
                                     ),
                                   ),
@@ -810,7 +810,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             MaterialPageRoute(builder: (context) => const CreateObraScreen()),
           );
         },
-        backgroundColor: TierraApp.primary,
+        backgroundColor: AppColors.primary,
         icon: const Icon(Icons.add),
         label: const Text('Nueva Obra'),
       ),
@@ -895,7 +895,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.85,
         decoration: BoxDecoration(
-          color: isDark ? TierraApp.card : Colors.white,
+          color: AppColors.cardColor(isDark),
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),
@@ -1187,7 +1187,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (context) => Container(
         height: MediaQuery.of(context).size.height * 0.85,
         decoration: BoxDecoration(
-          color: isDark ? TierraApp.card : Colors.white,
+          color: AppColors.cardColor(isDark),
           borderRadius: const BorderRadius.only(
             topLeft: Radius.circular(24),
             topRight: Radius.circular(24),

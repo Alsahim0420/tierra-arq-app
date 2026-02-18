@@ -1,6 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-enum AppTheme { dark, light }
+enum AppTheme { light, dark, system }
 
 class ThemeState extends Equatable {
   const ThemeState(this.theme);

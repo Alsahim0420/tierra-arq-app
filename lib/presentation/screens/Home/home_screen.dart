@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/entities/user_entity.dart' as core;
-import '../../app/app.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../utils/user_role_utils.dart';
 import '../../bloc/obra/obra_bloc.dart';
 import '../../bloc/obra/obra_event.dart';
@@ -235,8 +235,8 @@ class _HomeScreenState extends State<HomeScreen> {
             });
           },
           borderRadius: BorderRadius.circular(24),
-          splashColor: TierraApp.primary.withValues(alpha: 0.1),
-          highlightColor: TierraApp.primary.withValues(alpha: 0.05),
+          splashColor: AppColors.primary.withValues(alpha: 0.1),
+          highlightColor: AppColors.primary.withValues(alpha: 0.05),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOutCubic,
@@ -244,13 +244,13 @@ class _HomeScreenState extends State<HomeScreen> {
             margin: const EdgeInsets.symmetric(horizontal: 2),
             decoration: BoxDecoration(
               color: isActive
-                  ? TierraApp.primary.withValues(alpha: isDark ? 0.3 : 0.18)
+                  ? AppColors.primary.withValues(alpha: isDark ? 0.3 : 0.18)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(24),
               boxShadow: isActive
                   ? [
                       BoxShadow(
-                        color: TierraApp.primary.withValues(alpha: 0.2),
+                        color: AppColors.primary.withValues(alpha: 0.2),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                         spreadRadius: 0,
@@ -272,7 +272,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     key: ValueKey('${item.label}_$isActive'),
                     size: isActive ? 26 : 22,
                     color: isActive
-                        ? TierraApp.primary
+                        ? AppColors.primary
                         : (isDark
                               ? Colors.white.withValues(alpha: 0.65)
                               : Colors.black.withValues(alpha: 0.55)),
@@ -285,7 +285,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     fontSize: isActive ? 12 : 11,
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
                     color: isActive
-                        ? TierraApp.primary
+                        ? AppColors.primary
                         : (isDark
                               ? Colors.white.withValues(alpha: 0.65)
                               : Colors.black.withValues(alpha: 0.55)),

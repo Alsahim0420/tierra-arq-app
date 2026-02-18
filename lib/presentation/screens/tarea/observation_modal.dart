@@ -9,7 +9,7 @@ import '../../bloc/tarea/tarea_state.dart';
 import '../../bloc/obra/obra_bloc.dart';
 import '../../bloc/obra/obra_event.dart';
 import '../../bloc/obra/obra_state.dart';
-import '../../app/app.dart';
+import '../../../core/theme/app_colors.dart';
 
 class ObservationModal extends StatefulWidget {
   const ObservationModal({
@@ -274,7 +274,7 @@ class _ObservationModalState extends State<ObservationModal> {
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(16),
                           borderSide: BorderSide(
-                            color: TierraApp.primary,
+                            color: AppColors.primary,
                             width: 2,
                           ),
                         ),
@@ -314,7 +314,7 @@ class _ObservationModalState extends State<ObservationModal> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     backgroundColor: _isSaving
                         ? Colors.white.withValues(alpha: 0.1)
-                        : TierraApp.primary,
+                        : AppColors.primary,
                     foregroundColor: _isSaving
                         ? Colors.white54
                         : Colors.black,
