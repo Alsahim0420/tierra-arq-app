@@ -86,7 +86,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 32),
                       Text(
-                        'TIERRA ARQ',
+                        'Obrit',
                         style: textTheme.headlineMedium?.copyWith(
                           color: Colors.white,
                           letterSpacing: 1.2,

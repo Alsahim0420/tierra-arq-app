@@ -120,7 +120,7 @@ class TierraApp extends StatelessWidget {
         builder: (context, themeState) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
-            title: 'TIERRA Control de Obras',
+            title: 'Obrit',
             theme: _buildLightTheme(),
             darkTheme: _buildDarkTheme(),
             themeMode: themeState.theme == AppTheme.light
