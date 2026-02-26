@@ -13,7 +13,7 @@ import '../../../core/constants/colombian_cities.dart';
 import '../../bloc/obra/obra_bloc.dart';
 import '../../bloc/obra/obra_event.dart';
 // Imports para crear tareas en la obra
-import '../../app/app.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../../core/injection/injection_container.dart' as di;
 import '../../../domain/usecases/user/get_master_users_usecase.dart';
 import '../../../domain/usecases/obra_usecases.dart';
@@ -602,7 +602,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                   onPressed: () => Navigator.pop(context),
                   style: FilledButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    backgroundColor: TierraApp.primary,
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.black,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -860,7 +860,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
             letterSpacing: -0.4,
           ),
         ),
-        backgroundColor: TierraApp.getAppBarColor(isDark),
+        backgroundColor: AppColors.appBarColor(isDark),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SafeArea(
@@ -883,7 +883,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: TierraApp.primary.withValues(alpha: 0.3),
+                        color: AppColors.primary.withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       ),
@@ -902,15 +902,15 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              TierraApp.primary,
-                              TierraApp.primary.withValues(alpha: 0.8),
+                              AppColors.primary,
+                              AppColors.primary.withValues(alpha: 0.8),
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: TierraApp.primary.withValues(alpha: 0.3),
+                            color: AppColors.primary.withValues(alpha: 0.3),
                             width: 1,
                           ),
                         ),
@@ -1015,7 +1015,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                             'Ver Tareas (${_processedObra!.tareas.length})',
                             style: textTheme.bodyMedium?.copyWith(
                               fontWeight: FontWeight.w500,
-                              color: TierraApp.primary,
+                              color: AppColors.primary,
                             ),
                           ),
                           children: _processedObra!.tareas.take(10).map((tarea) {
@@ -1120,7 +1120,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(
-                        color: TierraApp.primary,
+                        color: AppColors.primary,
                         width: 2,
                       ),
                     ),
@@ -1169,7 +1169,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(
-                        color: TierraApp.primary,
+                        color: AppColors.primary,
                         width: 2,
                       ),
                     ),
@@ -1216,7 +1216,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(
-                        color: TierraApp.primary,
+                        color: AppColors.primary,
                         width: 2,
                       ),
                     ),
@@ -1302,7 +1302,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(
-                        color: TierraApp.primary,
+                        color: AppColors.primary,
                         width: 2,
                       ),
                     ),
@@ -1382,7 +1382,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide(
-                        color: TierraApp.primary,
+                        color: AppColors.primary,
                         width: 2,
                       ),
                     ),
@@ -1444,7 +1444,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 borderSide: BorderSide(
-                                  color: TierraApp.primary,
+                                  color: AppColors.primary,
                                   width: 2,
                                 ),
                               ),
@@ -1510,7 +1510,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 borderSide: BorderSide(
-                                  color: TierraApp.primary,
+                                  color: AppColors.primary,
                                   width: 2,
                                 ),
                               ),
@@ -1557,12 +1557,12 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                           data: Theme.of(context).copyWith(
                             colorScheme: isDark
                                 ? ColorScheme.dark(
-                                    primary: TierraApp.primary,
+                                    primary: AppColors.primary,
                                     onPrimary: Colors.black,
                                     surface: const Color(0xFF2B2B2B),
                                   )
                                 : ColorScheme.light(
-                                    primary: TierraApp.primary,
+                                    primary: AppColors.primary,
                                     onPrimary: Colors.black,
                                     surface: Colors.white,
                                   ),
@@ -1698,7 +1698,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(16),
                             borderSide: BorderSide(
-                              color: TierraApp.primary,
+                              color: AppColors.primary,
                               width: 2,
                             ),
                           ),
@@ -1746,7 +1746,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                     icon: const Icon(Icons.expand_more, size: 16),
                     label: const Text('Cargar más responsables'),
                     style: TextButton.styleFrom(
-                      foregroundColor: TierraApp.primary,
+                      foregroundColor: AppColors.primary,
                     ),
                   ),
                 ],
@@ -1763,10 +1763,10 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                               vertical: 6,
                             ),
                             decoration: BoxDecoration(
-                              color: TierraApp.primary.withValues(alpha: 0.2),
+                              color: AppColors.primary.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: TierraApp.primary.withValues(alpha: 0.4),
+                                color: AppColors.primary.withValues(alpha: 0.4),
                                 width: 1,
                               ),
                             ),
@@ -1776,14 +1776,14 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                                 Icon(
                                   Icons.task_alt_rounded,
                                   size: 18,
-                                  color: TierraApp.primary,
+                                  color: AppColors.primary,
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
                                   '${_tareasToAdd.length}',
                                   style: textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.w700,
-                                    color: TierraApp.primary,
+                                    color: AppColors.primary,
                                   ),
                                 ),
                                 const SizedBox(width: 4),
@@ -1909,7 +1909,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                                   // Icono de editar
                                   IconButton(
                                     icon: const Icon(Icons.edit_outlined, size: 20),
-                                    color: TierraApp.primary,
+                                    color: AppColors.primary,
                                     onPressed: () => _editTarea(context, index),
                                     tooltip: 'Editar tarea',
                                   ),
@@ -1928,7 +1928,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: TierraApp.primary.withValues(alpha: 0.3),
+                        color: AppColors.primary.withValues(alpha: 0.3),
                         blurRadius: 8,
                         offset: const Offset(0, 4),
                       ),
@@ -1947,15 +1947,15 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              TierraApp.primary,
-                              TierraApp.primary.withValues(alpha: 0.8),
+                              AppColors.primary,
+                              AppColors.primary.withValues(alpha: 0.8),
                             ],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                            color: TierraApp.primary.withValues(alpha: 0.3),
+                            color: AppColors.primary.withValues(alpha: 0.3),
                             width: 1,
                           ),
                         ),
@@ -2018,7 +2018,7 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 backgroundColor: _isCreating
                     ? (isDark ? Colors.white.withValues(alpha: 0.1) : Colors.grey.shade300)
-                    : TierraApp.primary,
+                    : AppColors.primary,
                 foregroundColor: _isCreating
                     ? (isDark ? Colors.white54 : Colors.black54)
                     : Colors.black,

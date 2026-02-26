@@ -6,7 +6,7 @@ import '../../../core/widgets/custom_snackbar.dart';
 import '../../bloc/auth/auth_bloc.dart';
 import '../../bloc/auth/auth_event.dart';
 import '../../bloc/auth/auth_state.dart';
-import '../../app/app.dart';
+import '../../../core/theme/app_colors.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -74,14 +74,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           color: Colors.white.withValues(alpha: 0.04),
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: TierraApp.primary.withValues(alpha: 0.3),
+                            color: AppColors.primary.withValues(alpha: 0.3),
                             width: 2,
                           ),
                         ),
                         child: const Icon(
                           Icons.construction,
                           size: 64,
-                          color: TierraApp.primary,
+                          color: AppColors.primary,
                         ),
                       ),
                       const SizedBox(height: 32),

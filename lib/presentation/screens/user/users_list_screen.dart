@@ -7,7 +7,7 @@ import '../../../core/injection/injection_container.dart' as di;
 import '../../../domain/usecases/user/get_master_users_usecase.dart';
 import '../../bloc/auth/auth_bloc.dart';
 import '../../bloc/auth/auth_state.dart';
-import '../../app/app.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../utils/user_role_utils.dart';
 import '../auth/register_screen.dart';
 
@@ -128,7 +128,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
             letterSpacing: -0.4,
           ),
         ),
-        backgroundColor: TierraApp.getAppBarColor(isDark),
+        backgroundColor: AppColors.appBarColor(isDark),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       floatingActionButton: BlocBuilder<AuthBloc, AuthState>(
@@ -140,7 +140,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
               onPressed: _navigateToRegister,
               icon: const Icon(Icons.person_add),
               label: const Text('Nuevo Maestro'),
-              backgroundColor: TierraApp.primary,
+              backgroundColor: AppColors.primary,
             );
           }
           return const SizedBox.shrink();
@@ -238,7 +238,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
                   Row(
                     children: [
                       CircleAvatar(
-                        backgroundColor: TierraApp.primary.withValues(
+                        backgroundColor: AppColors.primary.withValues(
                           alpha: 0.2,
                         ),
                         child: Text(
@@ -246,7 +246,7 @@ class _UsersListScreenState extends State<UsersListScreen> {
                               ? user.name[0].toUpperCase()
                               : '?',
                           style: TextStyle(
-                            color: TierraApp.primary,
+                            color: AppColors.primary,
                             fontWeight: FontWeight.bold,
                           ),
                         ),

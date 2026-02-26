@@ -6,9 +6,31 @@ import 'theme_state.dart';
 class ThemeBloc extends Bloc<ThemeEvent, ThemeState> {
   final ThemeService _themeService;
 
-  ThemeBloc(this._themeService) : super(const ThemeState(AppTheme.dark)) {
+  ThemeBloc(this._themeService) : super(const ThemeState(AppTheme.system)) {
     on<LoadTheme>(_onLoadTheme);
     on<ChangeTheme>(_onChangeTheme);
+  }
+
+  static AppTheme _themeFromString(String value) {
+    switch (value) {
+      case 'light':
+        return AppTheme.light;
+      case 'dark':
+        return AppTheme.dark;
+      default:
+        return AppTheme.system;
+    }
+  }
+
+  static String _themeToString(AppTheme theme) {
+    switch (theme) {
+      case AppTheme.light:
+        return 'light';
+      case AppTheme.dark:
+        return 'dark';
+      case AppTheme.system:
+        return 'system';
+    }
   }
 
   Future<void> _onLoadTheme(
@@ -17,10 +39,9 @@ class ThemeBloc extends Bloc<ThemeEvent, ThemeState> {
   ) async {
     try {
       final themeString = await _themeService.getTheme();
-      final theme = themeString == 'light' ? AppTheme.light : AppTheme.dark;
-      emit(ThemeState(theme));
+      emit(ThemeState(_themeFromString(themeString)));
     } catch (e) {
-      emit(const ThemeState(AppTheme.dark));
+      emit(const ThemeState(AppTheme.system));
     }
   }
 
@@ -29,8 +50,7 @@ class ThemeBloc extends Bloc<ThemeEvent, ThemeState> {
     Emitter<ThemeState> emit,
   ) async {
     try {
-      final themeString = event.theme == AppTheme.light ? 'light' : 'dark';
-      await _themeService.setTheme(themeString);
+      await _themeService.setTheme(_themeToString(event.theme));
       emit(ThemeState(event.theme));
     } catch (e) {
       // Si hay error, mantener el estado actual

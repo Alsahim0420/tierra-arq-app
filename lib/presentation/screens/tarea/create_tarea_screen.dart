@@ -8,7 +8,7 @@ import '../../../core/injection/injection_container.dart' as di;
 import '../../../domain/usecases/tarea_usecases.dart';
 import '../../bloc/tarea/tarea_bloc.dart';
 import '../../bloc/tarea/tarea_event.dart';
-import '../../app/app.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../utils/format_utils.dart';
 
 class CreateTareaScreen extends StatefulWidget {
@@ -193,7 +193,7 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
             letterSpacing: -0.4,
           ),
         ),
-        backgroundColor: TierraApp.getAppBarColor(isDark),
+        backgroundColor: AppColors.appBarColor(isDark),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Container(
@@ -245,7 +245,7 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
                     onPressed: _goBack,
                     style: FilledButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      backgroundColor: TierraApp.primary,
+                      backgroundColor: AppColors.primary,
                       foregroundColor: Colors.black,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
@@ -312,7 +312,7 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: TierraApp.primary, width: 2),
+                borderSide: BorderSide(color: AppColors.primary, width: 2),
               ),
               contentPadding: const EdgeInsets.all(16),
             ),
@@ -363,7 +363,7 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: TierraApp.primary, width: 2),
+                borderSide: BorderSide(color: AppColors.primary, width: 2),
               ),
               contentPadding: const EdgeInsets.all(16),
             ),
@@ -414,7 +414,7 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: TierraApp.primary, width: 2),
+                borderSide: BorderSide(color: AppColors.primary, width: 2),
               ),
               contentPadding: const EdgeInsets.all(16),
             ),
@@ -461,7 +461,7 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: TierraApp.primary, width: 2),
+                borderSide: BorderSide(color: AppColors.primary, width: 2),
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
@@ -528,7 +528,7 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: TierraApp.primary, width: 2),
+                borderSide: BorderSide(color: AppColors.primary, width: 2),
               ),
               contentPadding: const EdgeInsets.all(16),
             ),
@@ -543,7 +543,7 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
                   : (_isEditMode ? _editTarea : _saveTarea),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                backgroundColor: TierraApp.primary,
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.black,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -596,7 +596,7 @@ class _CreateTareaScreenState extends State<CreateTareaScreen> {
             ),
             // Icono de editar
             IconButton(
-              icon: Icon(Icons.edit_outlined, color: TierraApp.primary),
+              icon: Icon(Icons.edit_outlined, color: AppColors.primary),
               onPressed: _isEditing
                   ? null
                   : () {

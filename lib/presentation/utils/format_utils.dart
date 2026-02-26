@@ -78,6 +78,17 @@ class FormatUtils {
     // Si no coincide, devolver el original
     return state;
   }
+
+  /// Formatea una fecha en formato legible
+  static String formatDate(DateTime date) {
+    // Usar formato simple sin locale específico para evitar errores de inicialización
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final year = date.year.toString();
+    final hour = date.hour.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
+    return '$day/$month/$year $hour:$minute';
+  }
 }
 
 /// Formateador de entrada para campos de moneda

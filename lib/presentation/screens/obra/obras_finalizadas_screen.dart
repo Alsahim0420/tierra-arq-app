@@ -4,7 +4,7 @@ import '../../../core/entities/user_entity.dart' as core;
 import '../../bloc/obra/obra_bloc.dart';
 import '../../bloc/obra/obra_event.dart';
 import '../../bloc/obra/obra_state.dart';
-import '../../app/app.dart';
+import '../../../core/theme/app_colors.dart';
 import 'obra_detail_screen.dart';
 
 class ObrasFinalizadasScreen extends StatefulWidget {
@@ -86,7 +86,7 @@ class _ObrasFinalizadasScreenState extends State<ObrasFinalizadasScreen> {
             letterSpacing: -0.4,
           ),
         ),
-        backgroundColor: TierraApp.getAppBarColor(isDark),
+        backgroundColor: AppColors.appBarColor(isDark),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: BlocConsumer<ObraBloc, ObraState>(

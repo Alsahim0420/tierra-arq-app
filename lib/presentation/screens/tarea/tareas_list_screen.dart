@@ -15,7 +15,7 @@ import '../../bloc/auth/auth_state.dart';
 import '../../utils/format_utils.dart';
 import '../../utils/user_role_utils.dart';
 import '../../widgets/evidences_gallery.dart';
-import '../../app/app.dart';
+import '../../../core/theme/app_colors.dart';
 import 'tarea_detail_modal.dart';
 import 'create_tarea_modal.dart';
 
@@ -80,7 +80,7 @@ class _TareasListScreenState extends State<TareasListScreen> {
               },
               icon: const Icon(Icons.add),
               label: const Text('Nueva Tarea'),
-              backgroundColor: TierraApp.primary,
+              backgroundColor: AppColors.primary,
             );
           }
           return const SizedBox.shrink();
@@ -199,7 +199,7 @@ class _TareasListScreenState extends State<TareasListScreen> {
                                         UserRoleUtils.isAdmin(authState.user)) {
                                       return IconButton(
                                         icon: const Icon(Icons.edit),
-                                        color: TierraApp.primary,
+                                        color: AppColors.primary,
                                         onPressed: () {
                                           _showEditTareaModal(context, tarea);
                                         },
@@ -377,7 +377,7 @@ class _TareasListScreenState extends State<TareasListScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(TierraApp.primary),
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
                 ),
                 const SizedBox(height: 16),
                 Text(

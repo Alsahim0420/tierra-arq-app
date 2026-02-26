@@ -9,7 +9,7 @@ import '../../bloc/tarea/tarea_event.dart';
 import '../../bloc/tarea/tarea_state.dart';
 import '../../bloc/obra/obra_bloc.dart';
 import '../../bloc/obra/obra_event.dart';
-import '../../app/app.dart';
+import '../../../core/theme/app_colors.dart';
 
 class CreateTareaModal extends StatefulWidget {
   const CreateTareaModal({
@@ -241,7 +241,7 @@ class _CreateTareaModalState extends State<CreateTareaModal> {
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
                               borderSide: BorderSide(
-                                color: TierraApp.primary,
+                                color: AppColors.primary,
                                 width: 2,
                               ),
                             ),
@@ -287,7 +287,7 @@ class _CreateTareaModalState extends State<CreateTareaModal> {
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
                               borderSide: BorderSide(
-                                color: TierraApp.primary,
+                                color: AppColors.primary,
                                 width: 2,
                               ),
                             ),
@@ -334,7 +334,7 @@ class _CreateTareaModalState extends State<CreateTareaModal> {
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(16),
                                         borderSide: BorderSide(
-                                          color: TierraApp.primary,
+                                          color: AppColors.primary,
                                           width: 2,
                                         ),
                                       ),
@@ -399,7 +399,7 @@ class _CreateTareaModalState extends State<CreateTareaModal> {
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(16),
                                         borderSide: BorderSide(
-                                          color: TierraApp.primary,
+                                          color: AppColors.primary,
                                           width: 2,
                                         ),
                                       ),
@@ -447,7 +447,7 @@ class _CreateTareaModalState extends State<CreateTareaModal> {
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       backgroundColor: _isCreating
                           ? Colors.white.withValues(alpha: 0.1)
-                          : TierraApp.primary,
+                          : AppColors.primary,
                       foregroundColor: _isCreating
                           ? Colors.white54
                           : Colors.black,
