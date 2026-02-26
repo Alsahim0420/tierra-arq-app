@@ -14,7 +14,7 @@ import '../../bloc/tarea/tarea_state.dart';
 import '../../bloc/obra/obra_bloc.dart';
 import '../../bloc/obra/obra_event.dart';
 import '../../bloc/obra/obra_state.dart';
-import '../../app/app.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../utils/format_utils.dart';
 import 'package:flutter/services.dart';
 import '../../widgets/tarea_info_row.dart';
@@ -651,7 +651,7 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius: BorderRadius.circular(12),
                                         borderSide: BorderSide(
-                                          color: TierraApp.primary,
+                                          color: AppColors.primary,
                                           width: 2,
                                         ),
                                       ),
@@ -707,7 +707,7 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                                   //     focusedBorder: OutlineInputBorder(
                                   //       borderRadius: BorderRadius.circular(12),
                                   //       borderSide: BorderSide(
-                                  //         color: TierraApp.primary,
+                                  //         color: AppColors.primary,
                                   //         width: 2,
                                   //       ),
                                   //     ),
@@ -802,7 +802,7 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                                     : 'Agregar',
                               ),
                               style: TextButton.styleFrom(
-                                foregroundColor: TierraApp.primary,
+                                foregroundColor: AppColors.primary,
                               ),
                             ),
                           ],
@@ -1128,7 +1128,7 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
                                     vertical: 16,
                                   ),
                                   backgroundColor: canSave
-                                      ? TierraApp.primary
+                                      ? AppColors.primary
                                       : Colors.white.withValues(alpha: 0.1),
                                   foregroundColor: canSave
                                       ? Colors.black
@@ -1232,7 +1232,7 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(
-                  color: TierraApp.primary,
+                  color: AppColors.primary,
                   width: 2,
                 ),
               ),
@@ -1279,7 +1279,7 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(
-                  color: TierraApp.primary,
+                  color: AppColors.primary,
                   width: 2,
                 ),
               ),
@@ -1326,7 +1326,7 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide(
-                  color: TierraApp.primary,
+                  color: AppColors.primary,
                   width: 2,
                 ),
               ),
@@ -1351,7 +1351,7 @@ class _TareaDetailModalState extends State<TareaDetailModal> {
               onPressed: () => _saveSimpleChanges(context),
               style: FilledButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 16),
-                backgroundColor: TierraApp.primary,
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.black,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),

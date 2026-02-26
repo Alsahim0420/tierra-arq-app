@@ -14,7 +14,7 @@ import '../../bloc/tarea/tarea_state.dart';
 import '../../bloc/obra/obra_bloc.dart';
 import '../../bloc/obra/obra_event.dart';
 import '../../bloc/obra/obra_state.dart';
-import '../../app/app.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../utils/format_utils.dart';
 import 'package:flutter/services.dart';
 import '../../utils/user_role_utils.dart';
@@ -167,7 +167,7 @@ class _TareaDetailScreenState extends State<TareaDetailScreen> {
     final textTheme = Theme.of(context).textTheme;
 
     return Scaffold(
-      backgroundColor: isDark ? TierraApp.dark : TierraApp.lightBackground,
+      backgroundColor: AppColors.scaffoldBackgroundColor(isDark),
       appBar: AppBar(
         title: Text(
           widget.tarea.name,
@@ -177,7 +177,7 @@ class _TareaDetailScreenState extends State<TareaDetailScreen> {
             fontWeight: FontWeight.w600,
           ),
         ),
-        backgroundColor: TierraApp.getAppBarColor(isDark),
+        backgroundColor: AppColors.appBarColor(isDark),
         iconTheme: const IconThemeData(color: Colors.white),
         elevation: 0,
       ),
@@ -541,7 +541,7 @@ class _TareaDetailScreenState extends State<TareaDetailScreen> {
               ),
               focusedBorder: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide(color: TierraApp.primary, width: 2),
+                borderSide: BorderSide(color: AppColors.primary, width: 2),
               ),
               contentPadding: const EdgeInsets.all(16),
             ),
@@ -628,7 +628,7 @@ class _TareaDetailScreenState extends State<TareaDetailScreen> {
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: TierraApp.primary, width: 2),
+                    borderSide: BorderSide(color: AppColors.primary, width: 2),
                   ),
                   contentPadding: const EdgeInsets.all(16),
                 ),
@@ -683,7 +683,7 @@ class _TareaDetailScreenState extends State<TareaDetailScreen> {
               //     ),
               //     focusedBorder: OutlineInputBorder(
               //       borderRadius: BorderRadius.circular(12),
-              //       borderSide: BorderSide(color: TierraApp.primary, width: 2),
+              //       borderSide: BorderSide(color: AppColors.primary, width: 2),
               //     ),
               //     contentPadding: const EdgeInsets.all(16),
               //   ),
@@ -780,7 +780,7 @@ class _TareaDetailScreenState extends State<TareaDetailScreen> {
                     ? 'Editar'
                     : 'Agregar',
               ),
-              style: TextButton.styleFrom(foregroundColor: TierraApp.primary),
+              style: TextButton.styleFrom(foregroundColor: AppColors.primary),
             ),
           ],
         ),
@@ -858,13 +858,13 @@ class _TareaDetailScreenState extends State<TareaDetailScreen> {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: TierraApp.primary.withValues(alpha: 0.2),
+                  color: AppColors.primary.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   '${_pendingEvidences.length}',
                   style: textTheme.labelMedium?.copyWith(
-                    color: TierraApp.primary,
+                    color: AppColors.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1087,7 +1087,7 @@ class _TareaDetailScreenState extends State<TareaDetailScreen> {
         style: FilledButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
           backgroundColor: canSave
-              ? TierraApp.primary
+              ? AppColors.primary
               : (isDark ? const Color(0xFF2B2B2B) : Colors.grey.shade300),
           foregroundColor: canSave
               ? Colors.black

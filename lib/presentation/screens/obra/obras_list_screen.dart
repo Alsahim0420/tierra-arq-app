@@ -8,7 +8,7 @@ import '../../bloc/obra/obra_bloc.dart';
 import '../../bloc/obra/obra_event.dart';
 import '../../bloc/obra/obra_state.dart';
 import '../../bloc/tarea/tarea_bloc.dart';
-import '../../app/app.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../utils/user_role_utils.dart';
 // COMENTADO: Imports de navegación movidos al BottomNavigationBar
 // import '../profile/profile_screen.dart';
@@ -422,7 +422,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> with WidgetsBindingOb
                                     localSortOption = value!;
                                   });
                                 },
-                                activeColor: TierraApp.primary,
+                                activeColor: AppColors.primary,
                               );
                             }),
                         RadioListTile<SortOption>(
@@ -434,7 +434,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> with WidgetsBindingOb
                               localSortOption = value!;
                             });
                           },
-                          activeColor: TierraApp.primary,
+                          activeColor: AppColors.primary,
                         ),
                         const SizedBox(height: 24),
                         // Filtros por estado
@@ -595,7 +595,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> with WidgetsBindingOb
                             Navigator.pop(context);
                           },
                           style: FilledButton.styleFrom(
-                            backgroundColor: TierraApp.primary,
+                            backgroundColor: AppColors.primary,
                           ),
                           child: const Text('Aplicar'),
                         ),
@@ -631,7 +631,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> with WidgetsBindingOb
           ),
         ),
 
-        backgroundColor: TierraApp.getAppBarColor(isDark),
+        backgroundColor: AppColors.appBarColor(isDark),
         iconTheme: const IconThemeData(color: Colors.white),
         actions: [
           // Badge del rol a la derecha (más grande, al menos el doble)
@@ -644,10 +644,10 @@ class _ObrasListScreenState extends State<ObrasListScreen> with WidgetsBindingOb
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: TierraApp.primary.withValues(alpha: 0.2),
+                  color: AppColors.primary.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
-                    color: TierraApp.primary.withValues(alpha: 0.5),
+                    color: AppColors.primary.withValues(alpha: 0.5),
                     width: 1,
                   ),
                 ),
@@ -659,13 +659,13 @@ class _ObrasListScreenState extends State<ObrasListScreen> with WidgetsBindingOb
                           ? Icons.construction
                           : Icons.admin_panel_settings,
                       size: 20,
-                      color: TierraApp.primary,
+                      color: AppColors.primary,
                     ),
                     const SizedBox(width: 6),
                     Text(
                       roleDisplayName,
                       style: textTheme.bodyMedium?.copyWith(
-                        color: TierraApp.primary,
+                        color: AppColors.primary,
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
                       ),
@@ -822,7 +822,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> with WidgetsBindingOb
                                     (_selectedEstados.isNotEmpty ||
                                         _selectedCities.isNotEmpty ||
                                         _sortOption != SortOption.none)
-                                    ? TierraApp.primary
+                                    ? AppColors.primary
                                     : null,
                               ),
                               label: Text(
@@ -832,7 +832,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> with WidgetsBindingOb
                                       (_selectedEstados.isNotEmpty ||
                                           _selectedCities.isNotEmpty ||
                                           _sortOption != SortOption.none)
-                                      ? TierraApp.primary
+                                      ? AppColors.primary
                                       : null,
                                   fontWeight:
                                       (_selectedEstados.isNotEmpty ||
@@ -852,7 +852,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> with WidgetsBindingOb
                                       (_selectedEstados.isNotEmpty ||
                                           _selectedCities.isNotEmpty ||
                                           _sortOption != SortOption.none)
-                                      ? TierraApp.primary
+                                      ? AppColors.primary
                                       : (isDark
                                             ? Colors.white.withValues(
                                                 alpha: 0.2,
@@ -874,7 +874,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> with WidgetsBindingOb
                               onPressed: _clearAllFilters,
                               icon: const Icon(Icons.clear_all),
                               tooltip: 'Limpiar filtros',
-                              color: TierraApp.primary,
+                              color: AppColors.primary,
                             ),
                         ],
                       ),
@@ -920,11 +920,11 @@ class _ObrasListScreenState extends State<ObrasListScreen> with WidgetsBindingOb
                                   child: Chip(
                                     label: Text(city),
                                     onDeleted: () => _toggleCityFilter(city),
-                                    backgroundColor: TierraApp.primary
+                                    backgroundColor: AppColors.primary
                                         .withValues(alpha: isDark ? 0.2 : 0.1),
-                                    deleteIconColor: TierraApp.primary,
+                                    deleteIconColor: AppColors.primary,
                                     labelStyle: TextStyle(
-                                      color: TierraApp.primary,
+                                      color: AppColors.primary,
                                       fontSize: 12,
                                     ),
                                   ),
@@ -1035,14 +1035,14 @@ class _ObrasListScreenState extends State<ObrasListScreen> with WidgetsBindingOb
                                                 width: 48,
                                                 height: 48,
                                                 decoration: BoxDecoration(
-                                                  color: TierraApp.primary
+                                                  color: AppColors.primary
                                                       .withValues(alpha: 0.2),
                                                   borderRadius:
                                                       BorderRadius.circular(12),
                                                 ),
                                                 child: const Icon(
                                                   Icons.construction,
-                                                  color: TierraApp.primary,
+                                                  color: AppColors.primary,
                                                   size: 24,
                                                 ),
                                               ),
@@ -1230,7 +1230,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> with WidgetsBindingOb
               },
               icon: const Icon(Icons.add),
               label: const Text('Nueva Obra'),
-              backgroundColor: TierraApp.primary,
+              backgroundColor: AppColors.primary,
             )
           : null,
     );
@@ -1255,7 +1255,7 @@ class _FilterChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final chipColor = color ?? TierraApp.primary;
+    final chipColor = color ?? AppColors.primary;
 
     return FilterChip(
       label: Text(label),

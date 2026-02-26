@@ -3,7 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../core/entities/user_entity.dart' as core;
-import '../../app/app.dart';
+import '../../../core/theme/app_colors.dart';
 import '../../widgets/info_row.dart';
 import '../../widgets/info_section.dart';
 import '../../bloc/theme/theme_bloc.dart';
@@ -30,7 +30,7 @@ class ProfileScreen extends StatelessWidget {
             letterSpacing: -0.4,
           ),
         ),
-        backgroundColor: TierraApp.getAppBarColor(isDark),
+        backgroundColor: AppColors.appBarColor(isDark),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: SingleChildScrollView(
@@ -45,13 +45,13 @@ class ProfileScreen extends StatelessWidget {
                     width: 100,
                     height: 100,
                     decoration: BoxDecoration(
-                      color: TierraApp.primary.withValues(alpha: 0.2),
+                      color: AppColors.primary.withValues(alpha: 0.2),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       Icons.person,
                       size: 50,
-                      color: TierraApp.primary,
+                      color: AppColors.primary,
                     ),
                   ),
                   const SizedBox(height: 16),
@@ -69,14 +69,14 @@ class ProfileScreen extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: TierraApp.primary.withValues(alpha: 0.2),
+                      color: AppColors.primary.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Text(
                       user.role == 'admin' ? 'Administrador' : 'Maestro',
                       style: textTheme.bodySmall?.copyWith(
                         color: isDark
-                            ? TierraApp.primary
+                            ? AppColors.primary
                             : Colors.brown.shade700,
                         fontWeight: FontWeight.w600,
                       ),
@@ -106,19 +106,57 @@ class ProfileScreen extends StatelessWidget {
                         ),
                       ),
                       subtitle: Text(
-                        state.theme == AppTheme.light ? 'Claro' : 'Oscuro',
+                        state.theme == AppTheme.light
+                            ? 'Claro'
+                            : state.theme == AppTheme.dark
+                                ? 'Oscuro'
+                                : 'Sistema',
                         style: textTheme.bodySmall?.copyWith(
                           color: isDark ? Colors.white54 : Colors.black87,
                         ),
                       ),
-                      trailing: Switch(
-                        value: state.theme == AppTheme.light,
-                        onChanged: (value) {
-                          context.read<ThemeBloc>().add(
-                            ChangeTheme(value ? AppTheme.light : AppTheme.dark),
-                          );
+                      trailing: PopupMenuButton<AppTheme>(
+                        initialValue: state.theme,
+                        onSelected: (theme) {
+                          context.read<ThemeBloc>().add(ChangeTheme(theme));
                         },
-                        activeColor: TierraApp.primary,
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: AppTheme.light,
+                            child: ListTile(
+                              leading: Icon(Icons.light_mode),
+                              title: Text('Claro'),
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: AppTheme.system,
+                            child: ListTile(
+                              leading: Icon(Icons.brightness_auto),
+                              title: Text('Sistema'),
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: AppTheme.dark,
+                            child: ListTile(
+                              leading: Icon(Icons.dark_mode),
+                              title: Text('Oscuro'),
+                            ),
+                          ),
+                        ],
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Text(
+                            state.theme == AppTheme.light
+                                ? 'Claro'
+                                : state.theme == AppTheme.dark
+                                    ? 'Oscuro'
+                                    : 'Sistema',
+                            style: textTheme.bodyMedium?.copyWith(
+                              color: AppColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
                       ),
                     );
                   },
