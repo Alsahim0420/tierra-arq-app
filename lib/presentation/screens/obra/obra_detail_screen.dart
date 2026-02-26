@@ -7,6 +7,9 @@ import '../../../core/entities/obra_entity.dart';
 import '../../../core/entities/tarea_entity.dart';
 import '../../../core/entities/user_entity.dart' as core;
 import '../../../core/services/pdf_service.dart';
+import '../../../core/services/cloudinary_service.dart';
+import '../../../core/repositories/obra_repository.dart';
+import '../../../core/injection/injection_container.dart' as di;
 import '../../utils/format_utils.dart';
 import '../../utils/user_role_utils.dart';
 import '../tarea/tarea_detail_screen.dart';
@@ -15,6 +18,7 @@ import '../../bloc/obra/obra_bloc.dart';
 import '../../bloc/obra/obra_state.dart';
 import '../../bloc/auth/auth_bloc.dart';
 import '../../bloc/auth/auth_state.dart';
+import 'reportes_pdf_screen.dart';
 
 class ObraDetailScreen extends StatelessWidget {
   const ObraDetailScreen({super.key, required this.obra});
@@ -198,6 +202,27 @@ class ObraDetailScreen extends StatelessWidget {
                             ],
                           ),
                         ],
+                        const SizedBox(height: 16),
+                        // Botón para ver reportes PDF existentes
+                        SizedBox(
+                          width: double.infinity,
+                          child: OutlinedButton.icon(
+                            onPressed: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => ReportesPdfScreen(
+                                  obraId: currentObra.id,
+                                  obraTitle: currentObra.title,
+                                ),
+                              ),
+                            ),
+                            icon: const Icon(Icons.description),
+                            label: const Text('Ver Reportes PDF'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -550,13 +575,47 @@ class ObraDetailScreen extends StatelessWidget {
       final pdfService = PdfService();
       final pdfDocument = await pdfService.generateObraClientReport(obra);
 
+      // Generar bytes del PDF
+      final pdfBytes = await pdfDocument.save();
+
+      // Construir nombre del archivo con fecha
+      final fechaGeneracion = DateTime.now();
+      final fileName = 'REPORTE_PROYECTO_${obra.title.replaceAll(' ', '_')}_${fechaGeneracion.year}${fechaGeneracion.month.toString().padLeft(2, '0')}${fechaGeneracion.day.toString().padLeft(2, '0')}.pdf';
+
+      // Subir PDF a Cloudinary
+      final cloudinaryService = di.getIt<CloudinaryService>();
+      final cloudinaryUrl = await cloudinaryService.uploadPdf(
+        pdfBytes,
+        fileName,
+        folder: 'reportes_pdf',
+      );
+
+      // Guardar metadatos del PDF en la base de datos
+      final obraRepository = di.getIt<ObraRepository>();
+      await obraRepository.saveReportePdf(
+        obraId: obra.id,
+        url: cloudinaryUrl,
+        nombre: fileName,
+        fechaGeneracion: fechaGeneracion,
+        tamano: pdfBytes.length,
+        version: 1,
+      );
+
       // Cerrar el indicador de carga
       if (context.mounted) {
         Navigator.of(context).pop();
       }
 
-      // Generar bytes del PDF
-      final pdfBytes = await pdfDocument.save();
+      // Mostrar mensaje de éxito
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('PDF generado y guardado exitosamente'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
 
       // Mostrar pantalla de preview con opciones de compartir e imprimir
       if (context.mounted) {
@@ -565,7 +624,7 @@ class ObraDetailScreen extends StatelessWidget {
           MaterialPageRoute(
             builder: (context) => PdfPreviewScreen(
               pdfBytes: pdfBytes,
-              fileName: 'Reporte_${obra.title.replaceAll(' ', '_')}.pdf',
+              fileName: fileName,
             ),
           ),
         );

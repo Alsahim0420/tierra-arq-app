@@ -15,6 +15,7 @@ import '../../bloc/obra/obra_event.dart';
 import '../../utils/format_utils.dart';
 import '../obra/obra_detail_screen.dart';
 import '../obra/create_obra_screen.dart';
+import '../obra/all_reportes_pdf_screen.dart';
 import '../tarea/tarea_detail_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -709,6 +710,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Botón para ver todos los PDFs creados
+                        OutlinedButton.icon(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const AllReportesPdfScreen(),
+                              ),
+                            );
+                          },
+                          icon: const Icon(Icons.description),
+                          label: const Text('PDFs Creados'),
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(48),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 24),
 

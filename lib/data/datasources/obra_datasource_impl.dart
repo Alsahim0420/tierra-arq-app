@@ -1,11 +1,13 @@
 import 'dart:convert';
 import 'dart:developer' as developer;
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import '../../core/datasources/obra_datasource.dart';
 import '../../core/entities/obra_entity.dart';
 import '../../core/entities/user_entity.dart';
 import '../../core/entities/tarea_entity.dart';
+import '../../core/entities/reporte_pdf_entity.dart';
 import '../../core/services/http_service.dart';
 import '../../core/services/token_storage_service.dart';
 import '../../core/exceptions/app_exceptions.dart';
@@ -906,6 +908,444 @@ class ObraDataSourceImpl implements ObraDataSource {
       throw UnknownException(
         'Error al actualizar estados de obras: ${e.toString()}',
       );
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> saveReportePdf({
+    required String obraId,
+    required String url,
+    required String nombre,
+    required DateTime fechaGeneracion,
+    required int tamano,
+    int version = 1,
+  }) async {
+    try {
+      developer.log(
+        '  [SaveReportePdf] Guardando reporte PDF para obra: $obraId',
+        name: 'TareaStateFlow',
+      );
+
+      final body = <String, dynamic>{
+        'url': url,
+        'nombre': nombre,
+        'fecha_generacion': fechaGeneracion.toIso8601String(),
+        'tamaño': tamano, // El backend espera 'tamaño' con ñ
+        'version': version,
+      };
+
+      final response = await _httpService.post(
+        '/master/obra/$obraId/reporte-pdf',
+        body: body,
+      );
+
+      developer.log(
+        '  [SaveReportePdf] Response status: ${response.statusCode}',
+        name: 'TareaStateFlow',
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+        // La respuesta viene con estructura: { status, message, reporte }
+        if (data.containsKey('reporte') && data['reporte'] is Map) {
+          final reporteData = data['reporte'] as Map<String, dynamic>;
+
+          developer.log(
+            '  [SaveReportePdf] Reporte PDF guardado exitosamente: ${reporteData['id']}',
+            name: 'TareaStateFlow',
+          );
+
+          return reporteData;
+        } else {
+          throw ServerException(
+            'Respuesta del servidor en formato inesperado',
+            response.statusCode,
+          );
+        }
+      } else if (response.statusCode == 401) {
+        throw const AuthenticationException('No autorizado');
+      } else if (response.statusCode == 404) {
+        throw ServerException('Obra no encontrada', response.statusCode);
+      } else if (response.statusCode >= 500) {
+        throw ServerException(
+          'El servidor no está disponible. Intenta más tarde.',
+          response.statusCode,
+        );
+      } else {
+        String errorMessage = 'Error al guardar reporte PDF';
+        try {
+          final errorData = jsonDecode(response.body) as Map<String, dynamic>;
+          errorMessage = errorData['message']?.toString() ?? errorMessage;
+        } catch (_) {
+          // Si no se puede parsear el error, usar el mensaje por defecto
+        }
+        throw ServerException(errorMessage, response.statusCode);
+      }
+    } on AppException {
+      rethrow;
+    } catch (e, stackTrace) {
+      developer.log('  [SaveReportePdf] Exception: $e', name: 'TareaStateFlow');
+      developer.log(
+        '  [SaveReportePdf] Stack trace: $stackTrace',
+        name: 'TareaStateFlow',
+      );
+      throw UnknownException('Error al guardar reporte PDF: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<List<ReportePdfEntity>> getReportesPdf({
+    required String obraId,
+    int page = 1,
+    int limit = 10,
+  }) async {
+    try {
+      developer.log(
+        '  [GetReportesPdf] Obteniendo reportes PDF para obra: $obraId',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '  [GetReportesPdf] Endpoint: /master/obra/$obraId/reporte-pdf?page=$page&limit=$limit',
+        name: 'TareaStateFlow',
+      );
+
+      final response = await _httpService.get(
+        '/master/obra/$obraId/reporte-pdf?page=$page&limit=$limit',
+      );
+
+      developer.log(
+        '  [GetReportesPdf] Response status: ${response.statusCode}',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '  [GetReportesPdf] Response body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}',
+        name: 'TareaStateFlow',
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+        // La respuesta viene con estructura: { status, data: { docs: [...], totalDocs, ... } }
+        if (data.containsKey('data') && data['data'] is Map) {
+          final dataObj = data['data'] as Map<String, dynamic>;
+          
+          if (dataObj.containsKey('docs') && dataObj['docs'] is List) {
+            final docsList = dataObj['docs'] as List;
+            final reportes = docsList
+                .map((item) => ReportePdfEntity.fromJson(
+                    item as Map<String, dynamic>))
+                .toList();
+
+            developer.log(
+              '  [GetReportesPdf] Reportes PDF obtenidos: ${reportes.length}',
+              name: 'TareaStateFlow',
+            );
+
+            return reportes;
+          }
+        }
+        return [];
+      } else if (response.statusCode == 404) {
+        return [];
+      } else if (response.statusCode == 401) {
+        throw const AuthenticationException('No autorizado');
+      } else if (response.statusCode >= 500) {
+        throw ServerException(
+          'El servidor no está disponible. Intenta más tarde.',
+          response.statusCode,
+        );
+      } else {
+        String errorMessage = 'Error al obtener reportes PDF';
+        try {
+          final errorData = jsonDecode(response.body) as Map<String, dynamic>;
+          errorMessage = errorData['message']?.toString() ?? errorMessage;
+        } catch (_) {
+          // Si no se puede parsear el error, usar el mensaje por defecto
+        }
+        throw ServerException(errorMessage, response.statusCode);
+      }
+    } on AppException {
+      rethrow;
+    } catch (e, stackTrace) {
+      developer.log('  [GetReportesPdf] Exception: $e', name: 'TareaStateFlow');
+      developer.log(
+        '  [GetReportesPdf] Stack trace: $stackTrace',
+        name: 'TareaStateFlow',
+      );
+      throw UnknownException('Error al obtener reportes PDF: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<List<ReportePdfEntity>> getAllReportesPdf({
+    int page = 1,
+    int limit = 10,
+  }) async {
+    try {
+      developer.log(
+        '  [GetAllReportesPdf] Obteniendo todos los reportes PDF',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '  [GetAllReportesPdf] Endpoint: /master/reporte-pdf?page=$page&limit=$limit',
+        name: 'TareaStateFlow',
+      );
+
+      final response = await _httpService.get(
+        '/master/reporte-pdf?page=$page&limit=$limit',
+      );
+
+      developer.log(
+        '  [GetAllReportesPdf] Response status: ${response.statusCode}',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '  [GetAllReportesPdf] Response body: ${response.body.substring(0, response.body.length > 500 ? 500 : response.body.length)}',
+        name: 'TareaStateFlow',
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+        // La respuesta viene con estructura: { status, data: { docs: [...], totalDocs, ... } }
+        if (data.containsKey('data') && data['data'] is Map) {
+          final dataObj = data['data'] as Map<String, dynamic>;
+          
+          if (dataObj.containsKey('docs') && dataObj['docs'] is List) {
+            final docsList = dataObj['docs'] as List;
+            final reportes = docsList
+                .map((item) => ReportePdfEntity.fromJson(
+                    item as Map<String, dynamic>))
+                .toList();
+
+            developer.log(
+              '  [GetAllReportesPdf] Reportes PDF obtenidos: ${reportes.length}',
+              name: 'TareaStateFlow',
+            );
+
+            return reportes;
+          }
+        }
+        return [];
+      } else if (response.statusCode == 404) {
+        return [];
+      } else if (response.statusCode == 401) {
+        throw const AuthenticationException('No autorizado');
+      } else if (response.statusCode >= 500) {
+        throw ServerException(
+          'El servidor no está disponible. Intenta más tarde.',
+          response.statusCode,
+        );
+      } else {
+        String errorMessage = 'Error al obtener reportes PDF';
+        try {
+          final errorData = jsonDecode(response.body) as Map<String, dynamic>;
+          errorMessage = errorData['message']?.toString() ?? errorMessage;
+        } catch (_) {
+          // Si no se puede parsear el error, usar el mensaje por defecto
+        }
+        throw ServerException(errorMessage, response.statusCode);
+      }
+    } on AppException {
+      rethrow;
+    } catch (e, stackTrace) {
+      developer.log('  [GetAllReportesPdf] Exception: $e', name: 'TareaStateFlow');
+      developer.log(
+        '  [GetAllReportesPdf] Stack trace: $stackTrace',
+        name: 'TareaStateFlow',
+      );
+      throw UnknownException('Error al obtener reportes PDF: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<ReportePdfEntity> getReportePdfById(String reporteId) async {
+    try {
+      developer.log(
+        '  [GetReportePdfById] Obteniendo reporte PDF por ID: $reporteId',
+        name: 'TareaStateFlow',
+      );
+
+      final response = await _httpService.get(
+        '/master/reporte-pdf/$reporteId',
+      );
+
+      developer.log(
+        '  [GetReportePdfById] Response status: ${response.statusCode}',
+        name: 'TareaStateFlow',
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+        // La respuesta viene con estructura: { status, reporte: {...} }
+        if (data.containsKey('reporte') && data['reporte'] is Map) {
+          final reporteData = data['reporte'] as Map<String, dynamic>;
+          final reporte = ReportePdfEntity.fromJson(reporteData);
+
+          developer.log(
+            '  [GetReportePdfById] Reporte PDF obtenido: ${reporte.nombre}',
+            name: 'TareaStateFlow',
+          );
+
+          return reporte;
+        } else {
+          throw ServerException(
+            'Respuesta del servidor en formato inesperado',
+            response.statusCode,
+          );
+        }
+      } else if (response.statusCode == 404) {
+        throw ServerException('Reporte PDF no encontrado', response.statusCode);
+      } else if (response.statusCode == 401) {
+        throw const AuthenticationException('No autorizado');
+      } else if (response.statusCode >= 500) {
+        throw ServerException(
+          'El servidor no está disponible. Intenta más tarde.',
+          response.statusCode,
+        );
+      } else {
+        String errorMessage = 'Error al obtener reporte PDF';
+        try {
+          final errorData = jsonDecode(response.body) as Map<String, dynamic>;
+          errorMessage = errorData['message']?.toString() ?? errorMessage;
+        } catch (_) {
+          // Si no se puede parsear el error, usar el mensaje por defecto
+        }
+        throw ServerException(errorMessage, response.statusCode);
+      }
+    } on AppException {
+      rethrow;
+    } catch (e, stackTrace) {
+      developer.log('  [GetReportePdfById] Exception: $e', name: 'TareaStateFlow');
+      developer.log(
+        '  [GetReportePdfById] Stack trace: $stackTrace',
+        name: 'TareaStateFlow',
+      );
+      throw UnknownException('Error al obtener reporte PDF: ${e.toString()}');
+    }
+  }
+
+  @override
+  Future<Uint8List> downloadReportePdf(String reporteId) async {
+    try {
+      developer.log(
+        '  [DownloadReportePdf] Descargando PDF para reporte: $reporteId',
+        name: 'TareaStateFlow',
+      );
+
+      // Llamar al endpoint /download que devuelve el PDF directamente en bytes
+      // Para descargas binarias, solo necesitamos Accept, no Content-Type
+      final response = await _httpService.get(
+        '/master/reporte-pdf/$reporteId/download',
+        headers: {
+          'Accept': 'application/pdf',
+          // Content-Type vacío para que HttpService no agregue application/json
+          'Content-Type': '',
+        },
+      );
+
+      developer.log(
+        '  [DownloadReportePdf] Response status: ${response.statusCode}',
+        name: 'TareaStateFlow',
+      );
+      developer.log(
+        '  [DownloadReportePdf] Response headers: ${response.headers}',
+        name: 'TareaStateFlow',
+      );
+
+      if (response.statusCode == 200) {
+        // El endpoint devuelve el PDF directamente en bytes
+        final pdfBytes = response.bodyBytes;
+        
+        developer.log(
+          '  [DownloadReportePdf] PDF descargado exitosamente: ${pdfBytes.length} bytes',
+          name: 'TareaStateFlow',
+        );
+
+        return pdfBytes;
+      } else if (response.statusCode == 404) {
+        throw ServerException('Reporte PDF no encontrado', response.statusCode);
+      } else if (response.statusCode == 401) {
+        throw const AuthenticationException('No autorizado');
+      } else if (response.statusCode >= 500) {
+        // Intentar obtener más información del error del servidor
+        String errorMessage = 'El servidor no está disponible. Intenta más tarde.';
+        String errorDetails = '';
+        
+        // Obtener el body completo de la respuesta
+        final responseBody = response.body;
+        developer.log(
+          '  [DownloadReportePdf] Response body completo: $responseBody',
+          name: 'TareaStateFlow',
+        );
+        
+        try {
+          // Intentar parsear el error si viene como JSON
+          if (responseBody.isNotEmpty) {
+            final errorData = jsonDecode(responseBody) as Map<String, dynamic>;
+            errorMessage = errorData['message']?.toString() ?? 
+                         errorData['error']?.toString() ?? 
+                         errorMessage;
+            errorDetails = errorData.toString();
+          } else {
+            // Si el body está vacío, usar el header x-vercel-error si existe
+            final vercelError = response.headers['x-vercel-error'];
+            if (vercelError != null && vercelError.isNotEmpty) {
+              errorMessage = 'Error en el servidor: $vercelError';
+              errorDetails = responseBody;
+            }
+          }
+        } catch (e) {
+          // Si no es JSON, usar el body como texto
+          if (responseBody.isNotEmpty) {
+            errorDetails = responseBody;
+            // Intentar extraer información útil del mensaje
+            if (responseBody.contains('FUNCTION_INVOCATION_FAILED')) {
+              errorMessage = 'Error en el servidor: La función del backend falló. Verifica que el endpoint /download esté implementado correctamente.';
+            } else {
+              errorMessage = responseBody.length > 100 
+                  ? responseBody.substring(0, 100) 
+                  : responseBody;
+            }
+          }
+        }
+        
+        developer.log(
+          '  [DownloadReportePdf] Error 500 del servidor: $errorMessage',
+          name: 'TareaStateFlow',
+        );
+        if (errorDetails.isNotEmpty) {
+          developer.log(
+            '  [DownloadReportePdf] Detalles del error: $errorDetails',
+            name: 'TareaStateFlow',
+          );
+        }
+        
+        throw ServerException(errorMessage, response.statusCode);
+      } else {
+        String errorMessage = 'Error al descargar PDF';
+        try {
+          // Intentar parsear el error si viene como JSON
+          if (response.body.isNotEmpty) {
+            final errorData = jsonDecode(response.body) as Map<String, dynamic>;
+            errorMessage = errorData['message']?.toString() ?? errorMessage;
+          }
+        } catch (_) {
+          // Si no es JSON, usar el mensaje por defecto
+        }
+        throw ServerException(errorMessage, response.statusCode);
+      }
+    } on AppException {
+      rethrow;
+    } catch (e, stackTrace) {
+      developer.log('  [DownloadReportePdf] Exception: $e', name: 'TareaStateFlow');
+      developer.log(
+        '  [DownloadReportePdf] Stack trace: $stackTrace',
+        name: 'TareaStateFlow',
+      );
+      throw UnknownException('Error al descargar PDF: ${e.toString()}');
     }
   }
 }

@@ -68,9 +68,10 @@ class _ObrasListScreenState extends State<ObrasListScreen> with WidgetsBindingOb
       setState(() {}); // Actualizar cuando cambia el texto de búsqueda
     });
     // Llamar después del primer frame para asegurar que el contexto esté disponible
+    // SOLO cargar obras inicialmente, NO actualizar estados todavía
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _updateObrasEstadosOnEnter();
+        _loadObrasActivas();
       }
     });
   }
@@ -246,11 +247,14 @@ class _ObrasListScreenState extends State<ObrasListScreen> with WidgetsBindingOb
     // Marcar como visible cuando las dependencias cambian
     if (!_isVisible) {
       _isVisible = true;
-      // Actualizar estados cuando el widget se vuelve visible
-      final now = DateTime.now();
-      if (_lastUpdateTime == null || 
-          now.difference(_lastUpdateTime!).inSeconds >= 5) {
-        _updateObrasEstadosOnEnter();
+      // Solo actualizar estados si las obras ya se cargaron previamente
+      // Esto evita la doble carga en la inicialización
+      if (_hasLoaded) {
+        final now = DateTime.now();
+        if (_lastUpdateTime == null || 
+            now.difference(_lastUpdateTime!).inSeconds >= 5) {
+          _updateObrasEstadosOnEnter();
+        }
       }
     }
   }
@@ -679,6 +683,7 @@ class _ObrasListScreenState extends State<ObrasListScreen> with WidgetsBindingOb
           if (state is ObraLoaded) {
             _hasLoaded = true;
             _lastValidState = state;
+            // NO actualizar estados automáticamente para evitar recargas
           }
         },
         builder: (context, state) {

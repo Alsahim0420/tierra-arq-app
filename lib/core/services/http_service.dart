@@ -74,10 +74,24 @@ class HttpService {
     required bool requiresAuth,
     Map<String, String>? additionalHeaders,
   }) async {
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      ...?additionalHeaders,
-    };
+    final headers = <String, String>{};
+    
+    // Solo agregar Content-Type: application/json si no se especifica en additionalHeaders
+    // o si no está vacío (para permitir descargas binarias sin Content-Type)
+    if (additionalHeaders == null || 
+        !additionalHeaders.containsKey('Content-Type') ||
+        (additionalHeaders['Content-Type']?.isNotEmpty ?? true)) {
+      headers['Content-Type'] = 'application/json';
+    }
+    
+    // Agregar headers adicionales (pueden sobrescribir Content-Type)
+    if (additionalHeaders != null) {
+      headers.addAll(additionalHeaders);
+      // Si Content-Type está vacío, removerlo
+      if (headers['Content-Type']?.isEmpty ?? false) {
+        headers.remove('Content-Type');
+      }
+    }
 
     if (requiresAuth) {
       final token = await _getValidToken();
