@@ -1,3 +1,5 @@
+// ignore_for_file: unused_catch_stack
+
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
 import '../../../core/entities/reporte_pdf_entity.dart';
@@ -32,22 +34,17 @@ class _AllReportesPdfScreenState extends State<AllReportesPdfScreen> {
     });
 
     try {
-      print('📄 [AllReportesPdfScreen] Cargando todos los reportes PDF');
       final obraRepository = di.getIt<ObraRepository>();
-      print('📄 [AllReportesPdfScreen] Repository obtenido, llamando getAllReportesPdf...');
       final reportes = await obraRepository.getAllReportesPdf(
         page: 1,
         limit: 100, // Obtener todos los reportes
       );
 
-      print('📄 [AllReportesPdfScreen] Reportes obtenidos: ${reportes.length}');
       setState(() {
         _reportes = reportes;
         _isLoading = false;
       });
     } catch (e, stackTrace) {
-      print('❌ [AllReportesPdfScreen] Error al cargar reportes: $e');
-      print('❌ [AllReportesPdfScreen] Stack trace: $stackTrace');
       setState(() {
         _errorMessage = 'Error al cargar reportes: $e';
         _isLoading = false;
@@ -57,9 +54,6 @@ class _AllReportesPdfScreenState extends State<AllReportesPdfScreen> {
 
   Future<void> _openPdf(ReportePdfEntity reporte) async {
     try {
-      print('📄 [AllReportesPdfScreen] Abriendo PDF: ${reporte.nombre}');
-      print('📄 [AllReportesPdfScreen] Reporte ID: ${reporte.id}');
-      
       // Mostrar indicador de carga
       if (!mounted) return;
       showDialog(
@@ -71,15 +65,12 @@ class _AllReportesPdfScreenState extends State<AllReportesPdfScreen> {
       );
 
       // Descargar el PDF directamente desde el backend usando el endpoint /download
-      print('📄 [AllReportesPdfScreen] Descargando PDF desde el backend...');
       final obraRepository = di.getIt<ObraRepository>();
       
       Uint8List pdfBytes;
       try {
         pdfBytes = await obraRepository.downloadReportePdf(reporte.id);
-        print('📄 [AllReportesPdfScreen] PDF descargado exitosamente: ${pdfBytes.length} bytes');
       } catch (e) {
-        print('❌ [AllReportesPdfScreen] Error al descargar PDF: $e');
         rethrow;
       }
 
@@ -101,9 +92,6 @@ class _AllReportesPdfScreenState extends State<AllReportesPdfScreen> {
         );
       }
     } catch (e, stackTrace) {
-      print('❌ [AllReportesPdfScreen] Error al abrir PDF: $e');
-      print('❌ [AllReportesPdfScreen] Stack trace: $stackTrace');
-      
       // Cerrar el indicador de carga si está abierto
       if (mounted) {
         Navigator.of(context).pop();

@@ -1,3 +1,5 @@
+// ignore_for_file: unused_element
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../core/injection/injection_container.dart' as di;
@@ -46,10 +48,12 @@ class TierraApp extends StatelessWidget {
         builder: (context, themeState) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
-            title: 'TIERRA Control de Obras',
+            title: 'Obrit',
             theme: AppThemeData.lightTheme,
             darkTheme: AppThemeData.darkTheme,
-            themeMode: _themeModeFromAppTheme(themeState.theme),
+            themeMode: themeState.theme == AppTheme.light
+                ? ThemeMode.light
+                : ThemeMode.dark,
             home: const AuthWrapper(),
           );
         },
