@@ -280,9 +280,11 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
           });
         }
 
-        // Pre-seleccionar departamento y ciudad si existe
-        if (obra.departamento != null && obra.departamento!.isNotEmpty) {
-          // Si la obra tiene departamento, usarlo directamente
+        // Pre-seleccionar departamento y ciudad si existe (solo si el departamento está en la lista)
+        if (obra.departamento != null &&
+            obra.departamento!.isNotEmpty &&
+            ColombianCities.departmentsList.contains(obra.departamento)) {
+          // Si la obra tiene departamento válido, usarlo directamente
           final cities = ColombianCities.getCitiesForDepartment(obra.departamento!);
           // Buscar la ciudad exacta en la lista
           String? matchedCity;
@@ -1193,7 +1195,10 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  value: _selectedDepartment,
+                  value: _selectedDepartment != null &&
+                          ColombianCities.departmentsList.contains(_selectedDepartment)
+                      ? _selectedDepartment
+                      : null,
                   isExpanded: true,
                   decoration: InputDecoration(
                     hintText: 'Selecciona un departamento',
@@ -1223,26 +1228,15 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                     contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
                   ),
                   selectedItemBuilder: (BuildContext context) {
-                    if (_selectedDepartment == null) {
-                      return [
-                        Text(
-                          'Selecciona un departamento',
-                          overflow: TextOverflow.ellipsis,
-                          style: textTheme.bodyMedium?.copyWith(
-                            color: isDark ? Colors.white38 : Colors.black38,
-                          ),
-                        ),
-                      ];
-                    }
-                    return [
-                      Text(
-                        _selectedDepartment!,
+                    return ColombianCities.departmentsList.map((department) {
+                      return Text(
+                        department,
                         overflow: TextOverflow.ellipsis,
                         style: textTheme.bodyMedium?.copyWith(
                           color: isDark ? Colors.white : Colors.black87,
                         ),
-                      ),
-                    ];
+                      );
+                    }).toList();
                   },
                   items: ColombianCities.departmentsList.map((department) {
                     return DropdownMenuItem<String>(
@@ -1277,7 +1271,12 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                 ),
                 const SizedBox(height: 8),
                 DropdownButtonFormField<String>(
-                  value: _selectedCity,
+                  value: _selectedDepartment != null &&
+                          _selectedCity != null &&
+                          ColombianCities.getCitiesForDepartment(_selectedDepartment!)
+                              .contains(_selectedCity)
+                      ? _selectedCity
+                      : null,
                   isExpanded: true,
                   decoration: InputDecoration(
                     hintText: _selectedDepartment != null
@@ -1308,17 +1307,19 @@ class _CreateObraScreenState extends State<CreateObraScreen> {
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
                   ),
-                  selectedItemBuilder: _selectedCity != null
+                  selectedItemBuilder: _selectedDepartment != null
                       ? (BuildContext context) {
-                          return [
-                            Text(
-                              _selectedCity!,
+                          return ColombianCities
+                              .getCitiesForDepartment(_selectedDepartment!)
+                              .map((city) {
+                            return Text(
+                              city,
                               overflow: TextOverflow.ellipsis,
                               style: textTheme.bodyMedium?.copyWith(
                                 color: isDark ? Colors.white : Colors.black87,
                               ),
-                            ),
-                          ];
+                            );
+                          }).toList();
                         }
                       : null,
                   items: _selectedDepartment != null

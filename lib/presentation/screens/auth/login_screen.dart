@@ -41,6 +41,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthError) {
@@ -88,7 +89,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Text(
                         'Obrit',
                         style: textTheme.headlineMedium?.copyWith(
-                          color: Colors.white,
+                          color: isDark ? Colors.white : Colors.black87,
                           letterSpacing: 1.2,
                         ),
                         textAlign: TextAlign.center,
@@ -97,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       Text(
                         'Control de obras',
                         style: textTheme.bodyLarge?.copyWith(
-                          color: Colors.white70,
+                          color: isDark ? Colors.white70 : Colors.black54,
                         ),
                         textAlign: TextAlign.center,
                       ),
